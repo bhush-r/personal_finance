@@ -10,10 +10,16 @@ abstract class TransactionState extends Equatable {
 
 class TransactionInitial extends TransactionState {
   const TransactionInitial();
+
+  @override
+  List<Object?> get props => [];
 }
 
 class TransactionLoading extends TransactionState {
   const TransactionLoading();
+
+  @override
+  List<Object?> get props => [];
 }
 
 class TransactionLoaded extends TransactionState {
@@ -29,6 +35,15 @@ class TransactionError extends TransactionState {
   final String message;
 
   const TransactionError({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class TransactionOperationSuccess extends TransactionState {
+  final String message;
+
+  const TransactionOperationSuccess({required this.message});
 
   @override
   List<Object?> get props => [message];

@@ -1,10 +1,9 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class MonthlyTrendChart extends StatelessWidget {
-  final List<MapEntry<DateTime, double>> trend;
+  final Map<String, double> trend;
 
   const MonthlyTrendChart({super.key, required this.trend});
 
@@ -13,38 +12,61 @@ class MonthlyTrendChart extends StatelessWidget {
     if (trend.isEmpty) {
       return Container(
         height: 200,
-        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text('No data yet', style: TextStyle(color: Colors.grey)),
+        child: Center(
+          child: Text(
+            'No data available',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ),
       );
     }
 
-    final maxVal =
-    trend.map((e) => e.value).fold(0.0, (a, b) => a > b ? a : b);
+    final sortedEntries = trend.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
 
-    return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    final maxY = (trend.values.isEmpty ? 10000 : trend.values.reduce((a, b) => a > b ? a : b)) * 1.2;
+
+    final spots = sortedEntries.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), e.value.value);
+    }).toList();
+
+    return SizedBox(
+      height: 250,
       child: LineChart(
         LineChartData(
-          minY: 0,
-          maxY: maxVal * 1.2 + 1,
+          gridData: const FlGridData(show: false),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  if (index < sortedEntries.length) {
+                    final month = sortedEntries[index].key.split('-')[1];
+                    return Text(
+                      'M$month',
+                      style: const TextStyle(fontSize: 10),
+                    );
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ),
+            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
           lineBarsData: [
             LineChartBarData(
-              spots: List.generate(
-                trend.length,
-                    (i) => FlSpot(i.toDouble(), trend[i].value),
-              ),
+              spots: spots,
               isCurved: true,
               color: AppColors.primary,
               barWidth: 3,
+              isStrokeCapRound: true,
               dotData: const FlDotData(show: true),
               belowBarData: BarAreaData(
                 show: true,
@@ -52,35 +74,8 @@ class MonthlyTrendChart extends StatelessWidget {
               ),
             ),
           ],
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final idx = value.toInt();
-                  if (idx < 0 || idx >= trend.length) {
-                    return const SizedBox();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      DateFormat('MMM').format(trend[idx].key),
-                      style: const TextStyle(
-                          fontSize: 10, color: Colors.grey),
-                    ),
-                  );
-                },
-              ),
-            ),
-            leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
+          maxY: maxY,
+          minY: 0,
         ),
       ),
     );

@@ -1,105 +1,118 @@
+// lib/features/transactions/presentation/widgets/transaction_filter_bar.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../domain/entities/transaction.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class TransactionFilterBar extends StatelessWidget {
+class TransactionFilterBar extends StatefulWidget {
   final TransactionType? selectedType;
   final String searchQuery;
-  final ValueChanged<TransactionType?> onTypeChanged;
-  final ValueChanged<String> onSearchChanged;
+  final Function(TransactionType?) onTypeChanged;
+  final Function(String) onSearchChanged;
 
   const TransactionFilterBar({
     super.key,
-    required this.selectedType,
+    this.selectedType,
     required this.searchQuery,
     required this.onTypeChanged,
     required this.onSearchChanged,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Search field
-        TextField(
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            hintText: 'Search transactions...',
-            prefixIcon: const Icon(Icons.search, size: 20),
-            contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.grey.shade100,
-          ),
-        ),
-        const SizedBox(height: 10),
-        // Type filter chips
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _FilterChip(
-                label: 'All',
-                isSelected: selectedType == null,
-                onTap: () => onTypeChanged(null),
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: 'Income',
-                isSelected: selectedType == TransactionType.income,
-                onTap: () => onTypeChanged(TransactionType.income),
-                color: AppColors.income,
-              ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: 'Expense',
-                isSelected: selectedType == TransactionType.expense,
-                onTap: () => onTypeChanged(TransactionType.expense),
-                color: AppColors.expense,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  State<TransactionFilterBar> createState() => _TransactionFilterBarState();
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final Color color;
+class _TransactionFilterBarState extends State<TransactionFilterBar> {
+  late TextEditingController _searchCtrl;
+  Timer? _debounce;
 
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-    required this.color,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      widget.onSearchChanged(query);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          controller: _searchCtrl,
+          decoration: InputDecoration(
+            hintText: 'Search transactions...',
+            prefixIcon: const Icon(Iconsax.search_normal),
+            suffixIcon: _searchCtrl.text.isNotEmpty
+                ? IconButton(
+              icon: const Icon(Iconsax.close_circle),
+              onPressed: () {
+                _searchCtrl.clear();
+                widget.onSearchChanged('');
+              },
+            )
+                : null,
+          ),
+          onChanged: _onSearchChanged, // Debounced call
+        ),
+        const SizedBox(height: 12),
+        _buildTypeFilters(),
+      ],
+    );
+  }
+
+  Widget _buildTypeFilters() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterChip('All', widget.selectedType == null, () => widget.onTypeChanged(null)),
+          const SizedBox(width: 8),
+          ...TransactionType.values.map((type) {
+            final isSelected = widget.selectedType == type;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _buildFilterChip(
+                type.name.toUpperCase(),
+                isSelected,
+                    () => widget.onTypeChanged(isSelected ? null : type),
+                color: type == TransactionType.income ? AppColors.income : AppColors.expense,
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap, {Color? color}) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? (color ?? AppColors.primary) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : color,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            color: isSelected ? Colors.white : Colors.grey.shade700,
           ),
         ),
       ),

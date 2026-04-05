@@ -41,15 +41,26 @@ class DeleteTransactionEvent extends TransactionEvent {
 
 class FilterTransactionsEvent extends TransactionEvent {
   final TransactionType? type;
-  final TransactionCategory? category;
   final String? searchQuery;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const FilterTransactionsEvent({
     this.type,
-    this.category,
     this.searchQuery,
+    this.startDate,
+    this.endDate,
   });
 
   @override
-  List<Object?> get props => [type, category, searchQuery];
+  List<Object?> get props => [type, searchQuery, startDate, endDate];
+}
+
+class SortTransactionsEvent extends TransactionEvent {
+  final String sortBy; // 'date_asc', 'date_desc', 'amount_asc', 'amount_desc'
+
+  const SortTransactionsEvent({required this.sortBy});
+
+  @override
+  List<Object?> get props => [sortBy];
 }

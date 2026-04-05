@@ -9,10 +9,10 @@ class GoalModel extends HiveObject {
   late String id;
 
   @HiveField(1)
-  late String title;
+  late String name;
 
   @HiveField(2)
-  late int typeIndex;
+  late int typeIndex; // GoalType.index
 
   @HiveField(3)
   late double targetAmount;
@@ -21,44 +21,56 @@ class GoalModel extends HiveObject {
   late double currentAmount;
 
   @HiveField(5)
-  DateTime? deadline;
+  late DateTime createdDate;
 
   @HiveField(6)
-  late int streakDays;
+  late DateTime? deadline;
 
   @HiveField(7)
-  String? category;
+  late String? description;
+
+  @HiveField(8)
+  late bool isCompleted;
+
+  @HiveField(9)
+  late int? noSpendDays;
 
   GoalModel({
     required this.id,
-    required this.title,
+    required this.name,
     required this.typeIndex,
     required this.targetAmount,
     required this.currentAmount,
+    required this.createdDate,
     this.deadline,
-    required this.streakDays,
-    this.category,
+    this.description,
+    this.isCompleted = false,
+    this.noSpendDays = 0,
   });
 
   factory GoalModel.fromEntity(Goal goal) => GoalModel(
     id: goal.id,
-    title: goal.title,
+    name: goal.name,
     typeIndex: goal.type.index,
     targetAmount: goal.targetAmount,
     currentAmount: goal.currentAmount,
+    createdDate: goal.createdDate,
     deadline: goal.deadline,
-    streakDays: goal.streakDays,
-    category: goal.category,
+    description: goal.description,
+    isCompleted: goal.isCompleted,
+    noSpendDays: goal.noSpendDays,
   );
 
   Goal toEntity() => Goal(
     id: id,
-    title: title,
+    name: name,
     type: GoalType.values[typeIndex],
     targetAmount: targetAmount,
     currentAmount: currentAmount,
+    createdDate: createdDate,
     deadline: deadline,
-    streakDays: streakDays,
-    category: category,
+    description: description,
+    isCompleted: isCompleted,
+    noSpendDays: noSpendDays,
   );
 }

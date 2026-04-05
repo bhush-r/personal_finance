@@ -7,6 +7,7 @@ import '../repositories/goal_repository.dart';
 
 class UpdateGoalProgress implements UseCase<Goal, UpdateGoalProgressParams> {
   final GoalRepository repository;
+
   UpdateGoalProgress(this.repository);
 
   @override
@@ -15,17 +16,18 @@ class UpdateGoalProgress implements UseCase<Goal, UpdateGoalProgressParams> {
     final Goal updated;
 
     if (goal.type == GoalType.noSpend) {
-      // For no-spend challenges, increment streakDays (no upper clamp)
+      // For no-spend challenges, increment noSpendDays
       updated = goal.copyWith(
-        streakDays: goal.streakDays + params.amountToAdd.toInt(),
-        currentAmount: goal.streakDays + params.amountToAdd,
+        noSpendDays: (goal.noSpendDays ?? 0) + params.amountToAdd.toInt(),
       );
     } else {
+      // For savings goals and budget caps, update currentAmount
       updated = goal.copyWith(
         currentAmount: (goal.currentAmount + params.amountToAdd)
             .clamp(0.0, goal.targetAmount),
       );
     }
+
     return repository.updateGoal(updated);
   }
 }

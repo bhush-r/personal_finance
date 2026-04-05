@@ -6,6 +6,7 @@ import '../repositories/dashboard_repository.dart';
 
 class GetFinancialSummary implements UseCase<FinancialSummary, NoParams> {
   final DashboardRepository repository;
+
   GetFinancialSummary(this.repository);
 
   @override

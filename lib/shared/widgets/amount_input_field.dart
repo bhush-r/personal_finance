@@ -1,42 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:iconsax/iconsax.dart';
 
 class AmountInputField extends StatelessWidget {
   final TextEditingController controller;
-  final String? hintText;
+  final String label;
+  final String? Function(String?)? validator;
 
   const AmountInputField({
     super.key,
     required this.controller,
-    this.hintText,
+    this.label = 'Amount',
+    this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-      ],
-      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
-      textAlign: TextAlign.center,
       decoration: InputDecoration(
-        hintText: hintText ?? '0.00',
+        labelText: label,
         prefixText: '₹ ',
-        prefixStyle: Theme.of(context).textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: Colors.grey,
-        ),
-        hintStyle: Theme.of(context).textTheme.headlineMedium?.copyWith(
-          color: Colors.grey.shade300,
-          fontWeight: FontWeight.w700,
-        ),
-        border: InputBorder.none,
-        filled: false,
+        prefixIcon: const Icon(Iconsax.wallet),
+        hintText: '0.00',
       ),
+      validator: validator ?? (value) {
+        if (value?.isEmpty ?? true) return 'Amount is required';
+        final amount = double.tryParse(value!);
+        if (amount == null || amount <= 0) return 'Enter a valid amount';
+        return null;
+      },
     );
   }
 }

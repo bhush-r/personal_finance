@@ -4,18 +4,20 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/transaction_repository.dart';
 
-class DeleteTransaction implements UseCase<bool, DeleteTransactionParams> {
+class DeleteTransaction implements UseCase<void, DeleteTransactionParams> {
   final TransactionRepository repository;
+
   DeleteTransaction(this.repository);
 
   @override
-  Future<Either<Failure, bool>> call(DeleteTransactionParams params) {
+  Future<Either<Failure, void>> call(DeleteTransactionParams params) {
     return repository.deleteTransaction(params.id);
   }
 }
 
 class DeleteTransactionParams extends Equatable {
   final String id;
+
   const DeleteTransactionParams({required this.id});
 
   @override

@@ -1,11 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../domain/entities/transaction.dart';
 import '../../domain/usecases/add_transaction.dart';
-import '../../domain/usecases/get_transactions.dart';
 import '../../domain/usecases/delete_transaction.dart';
-import '../../domain/usecases/update_transaction.dart';
 import '../../domain/usecases/filter_transactions.dart';
+import '../../domain/usecases/get_transactions.dart';
+import '../../domain/usecases/update_transaction.dart';
 import 'transaction_event.dart';
 import 'transaction_state.dart';
 
@@ -16,30 +16,35 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final DeleteTransaction deleteTransaction;
   final FilterTransactions filterTransactions;
 
+  List<Transaction> _allTransactions = [];
+
   TransactionBloc({
     required this.getTransactions,
     required this.addTransaction,
     required this.updateTransaction,
     required this.deleteTransaction,
     required this.filterTransactions,
-  }) : super(TransactionInitial()) {
+  }) : super(const TransactionInitial()) {
     on<LoadTransactions>(_onLoadTransactions);
     on<AddTransactionEvent>(_onAddTransaction);
     on<UpdateTransactionEvent>(_onUpdateTransaction);
     on<DeleteTransactionEvent>(_onDeleteTransaction);
     on<FilterTransactionsEvent>(_onFilterTransactions);
+    on<SortTransactionsEvent>(_onSortTransactions);
   }
 
   Future<void> _onLoadTransactions(
       LoadTransactions event,
       Emitter<TransactionState> emit,
       ) async {
-    emit(TransactionLoading());
+    emit(const TransactionLoading());
     final result = await getTransactions(NoParams());
     result.fold(
           (failure) => emit(TransactionError(message: failure.message)),
-          (transactions) =>
-          emit(TransactionLoaded(transactions: transactions)),
+          (transactions) {
+        _allTransactions = transactions;
+        emit(TransactionLoaded(transactions: transactions));
+      },
     );
   }
 
@@ -47,12 +52,16 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       AddTransactionEvent event,
       Emitter<TransactionState> emit,
       ) async {
-    final txn = event.transaction.copyWith(id: const Uuid().v4());
-    final result =
-    await addTransaction(AddTransactionParams(transaction: txn));
+    emit(const TransactionLoading());
+    final result = await addTransaction(
+      AddTransactionParams(transaction: event.transaction),
+    );
     result.fold(
           (failure) => emit(TransactionError(message: failure.message)),
-          (_) => add(LoadTransactions()),
+          (_) {
+        // Reload transactions without await
+        _loadAndRefresh(emit);
+      },
     );
   }
 
@@ -60,12 +69,16 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       UpdateTransactionEvent event,
       Emitter<TransactionState> emit,
       ) async {
+    emit(const TransactionLoading());
     final result = await updateTransaction(
       UpdateTransactionParams(transaction: event.transaction),
     );
     result.fold(
           (failure) => emit(TransactionError(message: failure.message)),
-          (_) => add(LoadTransactions()),
+          (_) {
+        // Reload transactions without await
+        _loadAndRefresh(emit);
+      },
     );
   }
 
@@ -73,12 +86,16 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       DeleteTransactionEvent event,
       Emitter<TransactionState> emit,
       ) async {
+    emit(const TransactionLoading());
     final result = await deleteTransaction(
       DeleteTransactionParams(id: event.id),
     );
     result.fold(
           (failure) => emit(TransactionError(message: failure.message)),
-          (_) => add(LoadTransactions()),
+          (_) {
+        // Reload transactions without await
+        _loadAndRefresh(emit);
+      },
     );
   }
 
@@ -86,18 +103,59 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       FilterTransactionsEvent event,
       Emitter<TransactionState> emit,
       ) async {
-    emit(TransactionLoading());
+    emit(const TransactionLoading());
     final result = await filterTransactions(
-      FilterTransactionParams(
+      FilterTransactionsParams(
         type: event.type,
-        category: event.category,
         searchQuery: event.searchQuery,
+        startDate: event.startDate,
+        endDate: event.endDate,
       ),
     );
     result.fold(
           (failure) => emit(TransactionError(message: failure.message)),
-          (transactions) =>
-          emit(TransactionLoaded(transactions: transactions)),
+          (transactions) => emit(TransactionLoaded(transactions: transactions)),
+    );
+  }
+
+  Future<void> _onSortTransactions(
+      SortTransactionsEvent event,
+      Emitter<TransactionState> emit,
+      ) async {
+    if (_allTransactions.isEmpty) return;
+
+    List<Transaction> sorted = List.from(_allTransactions);
+
+    switch (event.sortBy) {
+      case 'date_asc':
+        sorted.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case 'date_desc':
+        sorted.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case 'amount_asc':
+        sorted.sort((a, b) => a.amount.compareTo(b.amount));
+        break;
+      case 'amount_desc':
+        sorted.sort((a, b) => b.amount.compareTo(a.amount));
+        break;
+    }
+
+    emit(TransactionLoaded(transactions: sorted));
+  }
+
+
+  Future<void> _loadAndRefresh(Emitter<TransactionState> emit) async {
+    final loadResult = await getTransactions(NoParams());
+    loadResult.fold(
+          (failure) => emit(TransactionError(message: failure.message)),
+          (transactions) {
+        _allTransactions = transactions;
+        emit(TransactionLoaded(transactions: transactions));
+        emit(const TransactionOperationSuccess(
+          message: '✓ Transaction operation successful',
+        ));
+      },
     );
   }
 }

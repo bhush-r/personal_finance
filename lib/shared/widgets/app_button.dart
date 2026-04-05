@@ -1,52 +1,57 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 
 class AppButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
-  final bool isDestructive;
   final bool isLoading;
+  final bool isDestructive;
+  final bool isOutlined;
 
   const AppButton({
     super.key,
     required this.label,
     required this.onPressed,
-    this.isDestructive = false,
     this.isLoading = false,
+    this.isDestructive = false,
+    this.isOutlined = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
+    if (isOutlined) {
+      return OutlinedButton(
         onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDestructive
-              ? AppColors.expense.withOpacity(0.1)
-              : AppColors.primary,
-          foregroundColor:
-          isDestructive ? AppColors.expense : Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: isLoading
             ? const SizedBox(
-          height: 20,
-          width: 20,
+          height: 24,
+          width: 24,
           child: CircularProgressIndicator(strokeWidth: 2),
         )
-            : Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
+            : Text(label),
+      );
+    }
+
+    return ElevatedButton(
+      onPressed: isLoading ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDestructive ? Colors.red : null,
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      child: isLoading
+          ? const SizedBox(
+        height: 24,
+        width: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation(Colors.white),
+        ),
+      )
+          : Text(label),
     );
   }
 }

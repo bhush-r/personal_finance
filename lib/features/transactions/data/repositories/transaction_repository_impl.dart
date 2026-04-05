@@ -3,7 +3,6 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../datasources/transaction_local_datasource.dart';
-import '../models/transaction_model.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionLocalDataSource localDataSource;
@@ -13,65 +12,60 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<Either<Failure, List<Transaction>>> getTransactions() async {
     try {
-      final models = await localDataSource.getTransactions();
-      return Right(models.map((m) => m.toEntity()).toList());
+      final transactions = await localDataSource.getTransactions();
+      return Right(transactions);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, Transaction>> addTransaction(Transaction txn) async {
+  Future<Either<Failure, Transaction>> addTransaction(Transaction transaction) async {
     try {
-      final model = TransactionModel.fromEntity(txn);
-      await localDataSource.cacheTransaction(model);
-      return Right(txn);
+      final result = await localDataSource.addTransaction(transaction);
+      return Right(result);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, Transaction>> updateTransaction(Transaction txn) async {
+  Future<Either<Failure, Transaction>> updateTransaction(Transaction transaction) async {
     try {
-      final model = TransactionModel.fromEntity(txn);
-      await localDataSource.updateTransaction(model);
-      return Right(txn);
+      final result = await localDataSource.updateTransaction(transaction);
+      return Right(result);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, bool>> deleteTransaction(String id) async {
+  Future<Either<Failure, void>> deleteTransaction(String id) async {
     try {
       await localDataSource.deleteTransaction(id);
-      return const Right(true);
+      return const Right(null);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
   Future<Either<Failure, List<Transaction>>> filterTransactions({
     TransactionType? type,
-    TransactionCategory? category,
-    DateTime? from,
-    DateTime? to,
     String? searchQuery,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
-      var txns = (await localDataSource.getTransactions()).map((m) => m.toEntity()).toList();
-
-      if (type != null) txns = txns.where((t) => t.type == type).toList();
-      if (category != null) txns = txns.where((t) => t.category == category).toList();
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        txns = txns.where((t) => t.note.toLowerCase().contains(searchQuery.toLowerCase())).toList();
-      }
-
-      return Right(txns);
+      final transactions = await localDataSource.filterTransactions(
+        type: type,
+        searchQuery: searchQuery,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      return Right(transactions);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 }

@@ -6,6 +6,7 @@ import '../repositories/goal_repository.dart';
 
 class GetGoals implements UseCase<List<Goal>, NoParams> {
   final GoalRepository repository;
+
   GetGoals(this.repository);
 
   @override

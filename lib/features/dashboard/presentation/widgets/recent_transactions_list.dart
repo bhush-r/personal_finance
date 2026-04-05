@@ -1,131 +1,84 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
 
 class RecentTransactionsList extends StatelessWidget {
   final List<Transaction> transactions;
+
   const RecentTransactionsList({super.key, required this.transactions});
 
   @override
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(24),
-        alignment: Alignment.center,
+        height: 200,
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text('No transactions yet',
-            style: TextStyle(color: Colors.grey)),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Iconsax.receipt, size: 48, color: Colors.grey.shade300),
+              const SizedBox(height: 12),
+              Text(
+                'No transactions yet',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    return Column(
-      children: [
-        ...transactions.map((t) => _TransactionRow(transaction: t)),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () => context.go('/transactions'),
-          child: Text(
-            'View all transactions →',
-            style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13),
-          ),
-        ),
-      ],
-    );
-  }
-}
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: transactions.length,
+      itemBuilder: (context, index) {
+        final txn = transactions[index];
+        final isIncome = txn.type.name == 'income';
+        final color = isIncome ? AppColors.income : AppColors.expense;
 
-class _TransactionRow extends StatelessWidget {
-  final Transaction transaction;
-  const _TransactionRow({required this.transaction});
-
-  @override
-  Widget build(BuildContext context) {
-    final isIncome = transaction.type == TransactionType.income;
-    final color = isIncome ? AppColors.income : AppColors.expense;
-    final categoryColor =
-        AppColors.categoryColors[transaction.category.name] ?? AppColors.primary;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: categoryColor.withOpacity(0.15),
+              color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: Text(
-                _emojiForCategory(transaction.category),
-                style: const TextStyle(fontSize: 18),
-              ),
+            child: Icon(
+              isIncome ? Iconsax.arrow_down_2 : Iconsax.arrow_up_2,
+              color: color,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.note.isNotEmpty
-                      ? transaction.note
-                      : _labelForCategory(transaction.category),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w500, fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  DateFormatter.formatShort(transaction.date),
-                  style:
-                  const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
+          title: Text(
+            txn.category.name.replaceFirst(
+              txn.category.name[0],
+              txn.category.name[0].toUpperCase(),
+            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Text(
-            '${isIncome ? '+' : '-'}₹${transaction.amount.toStringAsFixed(0)}',
+          subtitle: Text(DateFormatter.formatDate(txn.date)),
+          trailing: Text(
+            '${isIncome ? '+' : '-'} ${CurrencyFormatter.format(txn.amount)}',
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w700,
-              fontSize: 15,
+              fontSize: 14,
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
-  }
-
-  String _emojiForCategory(TransactionCategory cat) {
-    const emojis = {
-      TransactionCategory.food: '🍔',
-      TransactionCategory.transport: '🚗',
-      TransactionCategory.shopping: '🛍️',
-      TransactionCategory.health: '💊',
-      TransactionCategory.bills: '💡',
-      TransactionCategory.salary: '💰',
-      TransactionCategory.savings: '🏦',
-      TransactionCategory.entertainment: '🎬',
-      TransactionCategory.other: '📦',
-    };
-    return emojis[cat] ?? '📦';
-  }
-
-  String _labelForCategory(TransactionCategory cat) {
-    return cat.name[0].toUpperCase() + cat.name.substring(1);
   }
 }

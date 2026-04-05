@@ -6,6 +6,7 @@ import '../repositories/transaction_repository.dart';
 
 class GetTransactions implements UseCase<List<Transaction>, NoParams> {
   final TransactionRepository repository;
+
   GetTransactions(this.repository);
 
   @override

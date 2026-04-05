@@ -1,10 +1,11 @@
 import 'package:hive/hive.dart';
 import '../models/goal_model.dart';
+import '../../domain/entities/goal.dart';
 
 abstract class GoalLocalDataSource {
-  Future<List<GoalModel>> getGoals();
-  Future<void> saveGoal(GoalModel goal);
-  Future<void> updateGoal(GoalModel goal);
+  Future<List<Goal>> getGoals();
+  Future<Goal> addGoal(Goal goal);
+  Future<Goal> updateGoal(Goal goal);
   Future<void> deleteGoal(String id);
 }
 
@@ -14,22 +15,33 @@ class GoalLocalDataSourceImpl implements GoalLocalDataSource {
   GoalLocalDataSourceImpl({required this.box});
 
   @override
-  Future<List<GoalModel>> getGoals() async {
-    return box.values.toList();
+  Future<List<Goal>> getGoals() async {
+    final models = box.values.toList();
+    return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<void> saveGoal(GoalModel goal) async {
-    await box.put(goal.id, goal);
+  Future<Goal> addGoal(Goal goal) async {
+    final model = GoalModel.fromEntity(goal);
+    await box.add(model);
+    return goal;
   }
 
   @override
-  Future<void> updateGoal(GoalModel goal) async {
-    await box.put(goal.id, goal);
+  Future<Goal> updateGoal(Goal goal) async {
+    final model = GoalModel.fromEntity(goal);
+    final key = box.values.toList().indexWhere((m) => m.id == goal.id);
+    if (key != -1) {
+      await box.putAt(key, model);
+    }
+    return goal;
   }
 
   @override
   Future<void> deleteGoal(String id) async {
-    await box.delete(id);
+    final key = box.values.toList().indexWhere((m) => m.id == id);
+    if (key != -1) {
+      await box.deleteAt(key);
+    }
   }
 }

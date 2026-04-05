@@ -5,33 +5,35 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/transaction.dart';
 import '../repositories/transaction_repository.dart';
 
-class FilterTransactions
-    implements UseCase<List<Transaction>, FilterTransactionParams> {
+class FilterTransactions implements UseCase<List<Transaction>, FilterTransactionsParams> {
   final TransactionRepository repository;
+
   FilterTransactions(this.repository);
 
   @override
-  Future<Either<Failure, List<Transaction>>> call(
-      FilterTransactionParams params) {
+  Future<Either<Failure, List<Transaction>>> call(FilterTransactionsParams params) {
     return repository.filterTransactions(
       type: params.type,
-      category: params.category,
       searchQuery: params.searchQuery,
+      startDate: params.startDate,
+      endDate: params.endDate,
     );
   }
 }
 
-class FilterTransactionParams extends Equatable {
+class FilterTransactionsParams extends Equatable {
   final TransactionType? type;
-  final TransactionCategory? category;
   final String? searchQuery;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
-  const FilterTransactionParams({
+  const FilterTransactionsParams({
     this.type,
-    this.category,
     this.searchQuery,
+    this.startDate,
+    this.endDate,
   });
 
   @override
-  List<Object?> get props => [type, category, searchQuery];
+  List<Object?> get props => [type, searchQuery, startDate, endDate];
 }

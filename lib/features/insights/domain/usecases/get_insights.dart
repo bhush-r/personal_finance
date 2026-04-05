@@ -6,6 +6,7 @@ import '../repositories/insights_repository.dart';
 
 class GetInsights implements UseCase<Insight, NoParams> {
   final InsightsRepository repository;
+
   GetInsights(this.repository);
 
   @override

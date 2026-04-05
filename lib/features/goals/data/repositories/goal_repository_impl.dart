@@ -3,7 +3,6 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/goal.dart';
 import '../../domain/repositories/goal_repository.dart';
 import '../datasources/goal_local_datasource.dart';
-import '../models/goal_model.dart';
 
 class GoalRepositoryImpl implements GoalRepository {
   final GoalLocalDataSource localDataSource;
@@ -13,42 +12,40 @@ class GoalRepositoryImpl implements GoalRepository {
   @override
   Future<Either<Failure, List<Goal>>> getGoals() async {
     try {
-      final models = await localDataSource.getGoals();
-      return Right(models.map((m) => m.toEntity()).toList());
+      final goals = await localDataSource.getGoals();
+      return Right(goals);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
   Future<Either<Failure, Goal>> addGoal(Goal goal) async {
     try {
-      final model = GoalModel.fromEntity(goal);
-      await localDataSource.saveGoal(model);
-      return Right(goal);
+      final result = await localDataSource.addGoal(goal);
+      return Right(result);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
   Future<Either<Failure, Goal>> updateGoal(Goal goal) async {
     try {
-      final model = GoalModel.fromEntity(goal);
-      await localDataSource.updateGoal(model);
-      return Right(goal);
+      final result = await localDataSource.updateGoal(goal);
+      return Right(result);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, bool>> deleteGoal(String id) async {
+  Future<Either<Failure, void>> deleteGoal(String id) async {
     try {
       await localDataSource.deleteGoal(id);
-      return const Right(true);
+      return const Right(null);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 }

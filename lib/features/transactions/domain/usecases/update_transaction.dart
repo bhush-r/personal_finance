@@ -7,6 +7,7 @@ import '../repositories/transaction_repository.dart';
 
 class UpdateTransaction implements UseCase<Transaction, UpdateTransactionParams> {
   final TransactionRepository repository;
+
   UpdateTransaction(this.repository);
 
   @override
@@ -17,6 +18,7 @@ class UpdateTransaction implements UseCase<Transaction, UpdateTransactionParams>
 
 class UpdateTransactionParams extends Equatable {
   final Transaction transaction;
+
   const UpdateTransactionParams({required this.transaction});
 
   @override

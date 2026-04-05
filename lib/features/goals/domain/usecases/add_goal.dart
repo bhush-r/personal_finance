@@ -7,6 +7,7 @@ import '../repositories/goal_repository.dart';
 
 class AddGoal implements UseCase<Goal, AddGoalParams> {
   final GoalRepository repository;
+
   AddGoal(this.repository);
 
   @override
@@ -17,6 +18,7 @@ class AddGoal implements UseCase<Goal, AddGoalParams> {
 
 class AddGoalParams extends Equatable {
   final Goal goal;
+
   const AddGoalParams({required this.goal});
 
   @override

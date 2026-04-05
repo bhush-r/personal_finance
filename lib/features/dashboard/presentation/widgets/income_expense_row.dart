@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:iconsax/iconsax.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class IncomeExpenseRow extends StatelessWidget {
   final double totalIncome;
   final double totalExpense;
+
   const IncomeExpenseRow({
     super.key,
     required this.totalIncome,
@@ -15,34 +16,34 @@ class IncomeExpenseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _MetricCard(
-          label: 'Income',
-          amount: totalIncome,
-          icon: Iconsax.arrow_circle_down,
-          color: AppColors.income,
-        )),
+        Expanded(
+          child: _SummaryCard(
+            label: 'Income',
+            amount: totalIncome,
+            color: AppColors.income,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _MetricCard(
-          label: 'Expenses',
-          amount: totalExpense,
-          icon: Iconsax.arrow_circle_up,
-          color: AppColors.expense,
-        )),
+        Expanded(
+          child: _SummaryCard(
+            label: 'Expense',
+            amount: totalExpense,
+            color: AppColors.expense,
+          ),
+        ),
       ],
     );
   }
 }
 
-class _MetricCard extends StatelessWidget {
+class _SummaryCard extends StatelessWidget {
   final String label;
   final double amount;
-  final IconData icon;
   final Color color;
 
-  const _MetricCard({
+  const _SummaryCard({
     required this.label,
     required this.amount,
-    required this.icon,
     required this.color,
   });
 
@@ -51,39 +52,26 @@ class _MetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              shape: BoxShape.circle,
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
             ),
-            child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.grey.shade600)),
-                const SizedBox(height: 2),
-                Text(
-                  '₹${amount.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            CurrencyFormatter.format(amount),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

@@ -9,16 +9,13 @@ abstract class DashboardState extends Equatable {
   List<Object?> get props => [];
 }
 
-
 class DashboardInitial extends DashboardState {
   const DashboardInitial();
 }
 
-
 class DashboardLoading extends DashboardState {
   const DashboardLoading();
 }
-
 
 class DashboardLoaded extends DashboardState {
   final FinancialSummary summary;
@@ -33,13 +30,10 @@ class DashboardLoaded extends DashboardState {
   List<Object?> get props => [summary, recentTransactions];
 }
 
-
 class DashboardError extends DashboardState {
   final String message;
 
-  const DashboardError({
-    required this.message,
-  });
+  const DashboardError({required this.message});
 
   @override
   List<Object?> get props => [message];

@@ -18,24 +18,26 @@ class GoalModelAdapter extends TypeAdapter<GoalModel> {
     };
     return GoalModel(
       id: fields[0] as String,
-      title: fields[1] as String,
+      name: fields[1] as String,
       typeIndex: fields[2] as int,
       targetAmount: fields[3] as double,
       currentAmount: fields[4] as double,
-      deadline: fields[5] as DateTime?,
-      streakDays: fields[6] as int,
-      category: fields[7] as String?,
+      createdDate: fields[5] as DateTime,  // ✅ Non-nullable DateTime
+      deadline: fields[6] as DateTime?,
+      description: fields[7] as String?,
+      isCompleted: fields[8] as bool,
+      noSpendDays: fields[9] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, GoalModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.title)
+      ..write(obj.name)
       ..writeByte(2)
       ..write(obj.typeIndex)
       ..writeByte(3)
@@ -43,11 +45,15 @@ class GoalModelAdapter extends TypeAdapter<GoalModel> {
       ..writeByte(4)
       ..write(obj.currentAmount)
       ..writeByte(5)
-      ..write(obj.deadline)
+      ..write(obj.createdDate)
       ..writeByte(6)
-      ..write(obj.streakDays)
+      ..write(obj.deadline)
       ..writeByte(7)
-      ..write(obj.category);
+      ..write(obj.description)
+      ..writeByte(8)
+      ..write(obj.isCompleted)
+      ..writeByte(9)
+      ..write(obj.noSpendDays);
   }
 
   @override

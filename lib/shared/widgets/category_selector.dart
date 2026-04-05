@@ -1,16 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../features/transactions/domain/entities/transaction.dart';
 import '../../core/theme/app_colors.dart';
 
 class CategorySelector extends StatelessWidget {
   final TransactionCategory selected;
-  final ValueChanged<TransactionCategory> onSelected;
+  final Function(TransactionCategory) onSelected;
 
   const CategorySelector({
     super.key,
     required this.selected,
     required this.onSelected,
   });
+
+  IconData _getCategoryIcon(TransactionCategory category) {
+    switch (category) {
+      case TransactionCategory.food:
+        return Iconsax.cup;
+      case TransactionCategory.transport:
+        return Iconsax.car;
+      case TransactionCategory.shopping:
+        return Iconsax.bag_2;
+      case TransactionCategory.health:
+        return Iconsax.heart;
+      case TransactionCategory.bills:
+        return Iconsax.receipt_2;
+      case TransactionCategory.salary:
+        return Iconsax.money_recive;
+      case TransactionCategory.savings:
+        return Iconsax.save_2;
+      case TransactionCategory.entertainment:
+        return Iconsax.music;
+      case TransactionCategory.other:
+        return Iconsax.more;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,45 +43,40 @@ class CategorySelector extends StatelessWidget {
       children: [
         Text(
           'Category',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: TransactionCategory.values.map((cat) {
             final isSelected = cat == selected;
-            final color =
-                AppColors.categoryColors[cat.name] ?? AppColors.primary;
-            final label = cat.name[0].toUpperCase() + cat.name.substring(1);
-
             return GestureDetector(
               onTap: () => onSelected(cat),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? color : color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: isSelected
+                      ? AppColors.categoryColors[cat.name.toLowerCase()] ?? AppColors.primary
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _emojiForCategory(cat),
-                      style: const TextStyle(fontSize: 14),
+                    Icon(
+                      _getCategoryIcon(cat),
+                      size: 16,
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     Text(
-                      label,
+                      cat.name.replaceFirst(cat.name[0], cat.name[0].toUpperCase()),
                       style: TextStyle(
-                        color: isSelected ? Colors.white : color,
-                        fontWeight: FontWeight.w500,
                         fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : Colors.grey.shade700,
                       ),
                     ),
                   ],
@@ -68,20 +87,5 @@ class CategorySelector extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _emojiForCategory(TransactionCategory cat) {
-    const emojis = {
-      TransactionCategory.food: '🍔',
-      TransactionCategory.transport: '🚗',
-      TransactionCategory.shopping: '🛍️',
-      TransactionCategory.health: '💊',
-      TransactionCategory.bills: '💡',
-      TransactionCategory.salary: '💰',
-      TransactionCategory.savings: '🏦',
-      TransactionCategory.entertainment: '🎬',
-      TransactionCategory.other: '📦',
-    };
-    return emojis[cat] ?? '📦';
   }
 }

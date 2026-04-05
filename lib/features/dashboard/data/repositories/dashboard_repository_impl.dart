@@ -12,11 +12,10 @@ class DashboardRepositoryImpl implements DashboardRepository {
   @override
   Future<Either<Failure, FinancialSummary>> getFinancialSummary() async {
     try {
-      final models = await localDataSource.getAllTransactions();
-      final transactions = models.map((m) => m.toEntity()).toList();
-      return Right(FinancialSummary.fromTransactions(transactions));
+      final summary = await localDataSource.getFinancialSummary();
+      return Right(summary);
     } catch (e) {
-      return const Left(CacheFailure());
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 }

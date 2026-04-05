@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 class EmptyTransactionState extends StatelessWidget {
-  final String message;
-
-  const EmptyTransactionState({
-    super.key,
-    this.message = 'No transactions found',
-  });
+  const EmptyTransactionState({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,25 +11,23 @@ class EmptyTransactionState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Iconsax.receipt_item,
-            size: 72,
+            Iconsax.receipt,
+            size: 80,
             color: Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
           Text(
-            message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(color: Colors.grey),
+            'No transactions',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Colors.grey.shade600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to add your first transaction',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.grey.shade400),
+            'Add your first transaction to get started',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade500,
+            ),
           ),
         ],
       ),

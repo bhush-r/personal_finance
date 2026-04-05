@@ -8,6 +8,9 @@ import '../widgets/goal_card.dart';
 import '../widgets/no_spend_challenge_card.dart';
 import 'add_goal_screen.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/loading_shimmer_skeleton.dart';
+import '../../../../shared/widgets/fade_in_animation.dart';
+import '../../../../shared/dialogs/delete_confirmation_dialog.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -20,7 +23,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<GoalCubit>().loadGoals();
+    // ✅ FIXED: Use WidgetsBinding to delay Cubit access
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GoalCubit>().loadGoals();
+      }
+    });
   }
 
   void _showAddGoal(GoalType type) {
@@ -61,8 +69,15 @@ class _GoalsScreenState extends State<GoalsScreen> {
               final amount = double.tryParse(controller.text);
               if (amount != null && amount > 0) {
                 ctx.read<GoalCubit>().addProgress(goal, amount);
+                Navigator.pop(dialogCtx);
+              } else {
+                ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid amount'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
-              Navigator.pop(dialogCtx);
             },
             child: const Text('Add'),
           ),
@@ -71,6 +86,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
+  /// Build goals list grouped by type
   Widget _buildGoalsList(BuildContext context, List<Goal> goals) {
     final savingsGoals =
     goals.where((g) => g.type == GoalType.savings).toList();
@@ -82,46 +98,111 @@ class _GoalsScreenState extends State<GoalsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Savings Goals Section
         if (savingsGoals.isNotEmpty) ...[
-          Text('Savings Goals',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'Savings Goals',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
-          ...savingsGoals.map((g) => GoalCard(
-            goal: g,
-            onAddProgress: () => _showAddProgressDialog(context, g),
-          )),
+          ...savingsGoals.asMap().entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: FadeInAnimation(
+                child: GoalCard(
+                  goal: e.value,
+                  onAddProgress: () =>
+                      _showAddProgressDialog(context, e.value),
+                  onDelete: () {
+                    showDeleteConfirmation(
+                      context: context,
+                      title: 'Delete Goal',
+                      message:
+                      'Are you sure you want to delete this savings goal?',
+                      itemName: e.value.name,
+                      onConfirm: () =>
+                          context.read<GoalCubit>().removeGoal(e.value.id),
+                    );
+                  },
+                ),
+              ),
+            );
+          }),
           const SizedBox(height: 16),
         ],
+
+        // No-Spend Challenges Section
         if (noSpendGoals.isNotEmpty) ...[
-          Text('No-Spend Challenges',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'No-Spend Challenges',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
-          ...noSpendGoals.map((g) => NoSpendChallengeCard(
-            goal: g,
-            onIncrementStreak: () =>
-                context.read<GoalCubit>().addProgress(g, 1),
-            onDelete: () =>
-                context.read<GoalCubit>().removeGoal(g.id),
-          )),
+          ...noSpendGoals.asMap().entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: FadeInAnimation(
+                child: NoSpendChallengeCard(
+                  goal: e.value,
+                  onIncrementStreak: () =>
+                      context.read<GoalCubit>().incrementNoSpendStreak(e.value),
+                  onDelete: () {
+                    showDeleteConfirmation(
+                      context: context,
+                      title: 'Delete Challenge',
+                      message:
+                      'Are you sure you want to delete this no-spend challenge?',
+                      itemName: e.value.name,
+                      onConfirm: () =>
+                          context.read<GoalCubit>().removeGoal(e.value.id),
+                    );
+                  },
+                ),
+              ),
+            );
+          }),
           const SizedBox(height: 16),
         ],
+
+        // Budget Caps Section
         if (budgetGoals.isNotEmpty) ...[
-          Text('Budget Caps',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'Budget Caps',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
-          ...budgetGoals.map((g) => GoalCard(
-            goal: g,
-            onAddProgress: () => _showAddProgressDialog(context, g),
-          )),
+          ...budgetGoals.asMap().entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: FadeInAnimation(
+                child: GoalCard(
+                  goal: e.value,
+                  onAddProgress: () =>
+                      _showAddProgressDialog(context, e.value),
+                  onDelete: () {
+                    showDeleteConfirmation(
+                      context: context,
+                      title: 'Delete Budget Cap',
+                      message:
+                      'Are you sure you want to delete this budget cap?',
+                      itemName: e.value.name,
+                      onConfirm: () =>
+                          context.read<GoalCubit>().removeGoal(e.value.id),
+                    );
+                  },
+                ),
+              ),
+            );
+          }),
         ],
       ],
     );
@@ -139,85 +220,143 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
-      body: BlocBuilder<GoalCubit, GoalState>(
-        builder: (context, state) {
-          return RefreshIndicator(
-            onRefresh: () async => context.read<GoalCubit>().loadGoals(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _QuickAddButton(
-                        label: '💰 Savings Goal',
-                        onTap: () => _showAddGoal(GoalType.savings),
-                      ),
-                      const SizedBox(width: 8),
-                      _QuickAddButton(
-                        label: '🔥 No-Spend',
-                        onTap: () => _showAddGoal(GoalType.noSpend),
-                      ),
-                      const SizedBox(width: 8),
-                      _QuickAddButton(
-                        label: '📊 Budget Cap',
-                        onTap: () => _showAddGoal(GoalType.budgetCap),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  if (state is GoalLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (state is GoalError)
-                    Center(child: Text(state.message))
-                  else if (state is GoalLoaded)
-                      state.goals.isEmpty
-                          ? Center(
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 40),
-                            Icon(Iconsax.chart,
-                                size: 72, color: Colors.grey.shade300),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No goals yet',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(color: Colors.grey),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap a button above to create your first goal',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                  color: Colors.grey.shade400),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+      body: BlocListener<GoalCubit, GoalState>(
+        listener: (context, state) {
+          if (state is GoalOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+          if (state is GoalError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: BlocBuilder<GoalCubit, GoalState>(
+          builder: (context, state) {
+            return RefreshIndicator(
+              onRefresh: () async =>
+                  context.read<GoalCubit>().loadGoals(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Quick Add Buttons
+                    Row(
+                      children: [
+                        _QuickAddButton(
+                          label: '💰 Savings Goal',
+                          onTap: () => _showAddGoal(GoalType.savings),
+                        ),
+                        const SizedBox(width: 8),
+                        _QuickAddButton(
+                          label: '🔥 No-Spend',
+                          onTap: () => _showAddGoal(GoalType.noSpend),
+                        ),
+                        const SizedBox(width: 8),
+                        _QuickAddButton(
+                          label: '📊 Budget Cap',
+                          onTap: () => _showAddGoal(GoalType.budgetCap),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Content based on state
+                    if (state is GoalLoading)
+                      const GoalsLoadingSkeleton()
+                    else if (state is GoalError)
+                      Center(
+                        child: FadeInAnimation(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Iconsax.warning_2,
+                                size: 64,
+                                color: Colors.red.shade300,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(state.message),
+                              const SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  context.read<GoalCubit>().loadGoals();
+                                },
+                                icon: const Icon(Iconsax.refresh),
+                                label: const Text('Retry'),
+                              ),
+                            ],
+                          ),
                         ),
                       )
-                          : _buildGoalsList(context, state.goals),
-                  const SizedBox(height: 80),
-                ],
+                    else if (state is GoalLoaded)
+                        state.goals.isEmpty
+                            ? Center(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 40),
+                              Icon(
+                                Iconsax.chart,
+                                size: 72,
+                                color: Colors.grey.shade300,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No goals yet',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                    color: Colors.grey),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap a button above to create your first goal',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                    color:
+                                    Colors.grey.shade400),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                            : _buildGoalsList(context, state.goals),
+
+                    // Bottom spacing
+                    const SizedBox(height: 80),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 }
 
+/// Quick Add Button Widget
 class _QuickAddButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _QuickAddButton({required this.label, required this.onTap});
+  const _QuickAddButton({
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

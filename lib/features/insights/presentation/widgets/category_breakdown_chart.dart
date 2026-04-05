@@ -1,10 +1,9 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../../../transactions/domain/entities/transaction.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class CategoryBreakdownChart extends StatelessWidget {
-  final Map<TransactionCategory, double> data;
+  final Map<String, double> data;
 
   const CategoryBreakdownChart({super.key, required this.data});
 
@@ -12,76 +11,85 @@ class CategoryBreakdownChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (data.isEmpty) {
       return Container(
-        height: 200,
-        alignment: Alignment.center,
+        height: 250,
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text('No data yet', style: TextStyle(color: Colors.grey)),
+        child: Center(
+          child: Text(
+            'No spending data',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ),
       );
     }
 
-    final entries = data.entries.toList()
+    final total = data.values.fold<double>(0, (a, b) => a + b);
+    final sortedData = data.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final maxVal = entries.first.value;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: BarChart(
-        BarChartData(
-          maxY: maxVal * 1.2,
-          barGroups: List.generate(entries.length, (i) {
-            final color = AppColors.categoryColors[entries[i].key.name] ??
-                AppColors.primary;
-            return BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(
-                  toY: entries[i].value,
+    return Column(
+      children: [
+        SizedBox(
+          height: 200,
+          child: PieChart(
+            PieChartData(
+              sections: sortedData.map((e) {
+                final color = AppColors.categoryColors[e.key] ?? AppColors.primary;
+                return PieChartSectionData(
+                  value: e.value,
+                  title: '${((e.value / total) * 100).toStringAsFixed(0)}%',
+                  radius: 50,
+                  titleStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                   color: color,
-                  width: 22,
-                  borderRadius: BorderRadius.circular(4),
+                );
+              }).toList(),
+              centerSpaceRadius: 40,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...sortedData.map((e) {
+          final color = AppColors.categoryColors[e.key] ?? AppColors.primary;
+          final percentage = ((e.value / total) * 100).toStringAsFixed(1);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.key.replaceFirst(e.key[0], e.key[0].toUpperCase()),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$percentage%',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
-            );
-          }),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final idx = value.toInt();
-                  if (idx < 0 || idx >= entries.length) {
-                    return const SizedBox();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      entries[idx].key.name.substring(0, 3),
-                      style: const TextStyle(
-                          fontSize: 10, color: Colors.grey),
-                    ),
-                  );
-                },
-              ),
             ),
-            leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
-        ),
-      ),
+          );
+        }).toList(),
+      ],
     );
   }
 }
