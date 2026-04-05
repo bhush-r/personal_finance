@@ -72,12 +72,17 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
       }).toList();
     }
 
+    // ✅ FIXED DATE LOGIC
     if (startDate != null) {
-      transactions = transactions.where((t) => t.date.isAfter(startDate)).toList();
+      transactions = transactions.where(
+            (t) => !t.date.isBefore(startDate),
+      ).toList();
     }
 
     if (endDate != null) {
-      transactions = transactions.where((t) => t.date.isBefore(endDate)).toList();
+      transactions = transactions.where(
+            (t) => !t.date.isAfter(endDate),
+      ).toList();
     }
 
     return transactions;

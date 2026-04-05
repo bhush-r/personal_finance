@@ -3,15 +3,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:iconsax/iconsax.dart';
+
 import '../../domain/entities/transaction.dart';
 import '../bloc/transaction_bloc.dart';
 import '../bloc/transaction_event.dart';
+
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/enhanced_text_field.dart';
 import '../../../../shared/widgets/category_selector.dart';
 import '../../../../shared/widgets/validation_helper.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/widgets/fade_in_animation.dart';
 
 class AddEditTransactionScreen extends StatefulWidget {
   final Transaction? transaction;
@@ -23,12 +23,14 @@ class AddEditTransactionScreen extends StatefulWidget {
       _AddEditTransactionScreenState();
 }
 
-class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
+class _AddEditTransactionScreenState
+    extends State<AddEditTransactionScreen> {
   late TransactionType _type;
   late TransactionCategory _category;
   late TextEditingController _amountCtrl;
   late TextEditingController _noteCtrl;
   late DateTime _date;
+
   final _formKey = GlobalKey<FormState>();
 
   bool get isEditing => widget.transaction != null;
@@ -37,32 +39,26 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   void initState() {
     super.initState();
     _type = widget.transaction?.type ?? TransactionType.expense;
-    _category = widget.transaction?.category ?? TransactionCategory.food;
+    _category =
+        widget.transaction?.category ?? TransactionCategory.food;
     _amountCtrl = TextEditingController(
         text: widget.transaction?.amount.toString() ?? '');
-    _noteCtrl = TextEditingController(text: widget.transaction?.note ?? '');
+    _noteCtrl =
+        TextEditingController(text: widget.transaction?.note ?? '');
     _date = widget.transaction?.date ?? DateTime.now();
   }
 
-  @override
-  void dispose() {
-    _amountCtrl.dispose();
-    _noteCtrl.dispose();
-    super.dispose();
-  }
-
   void _submit() {
-    if (!_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) return;
+
+    final amount = double.tryParse(_amountCtrl.text) ?? 0;
+
+    if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fix the errors above'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text("Enter valid amount")),
       );
       return;
     }
-
-    final amount = double.parse(_amountCtrl.text);
 
     final txn = Transaction(
       id: widget.transaction?.id ?? const Uuid().v4(),
@@ -74,178 +70,155 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     );
 
     if (isEditing) {
-      context.read<TransactionBloc>().add(UpdateTransactionEvent(transaction: txn));
+      context.read<TransactionBloc>().add(
+        UpdateTransactionEvent(transaction: txn),
+      );
     } else {
-      context.read<TransactionBloc>().add(AddTransactionEvent(transaction: txn));
+      context.read<TransactionBloc>().add(
+        AddTransactionEvent(transaction: txn),
+      );
     }
 
-    Future.delayed(const Duration(milliseconds: 500), () {
-      context.pop();
-    });
+    context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FA),
+
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Transaction' : 'Add Transaction'),
+        title: Text(isEditing ? "Edit" : "Add Transaction"),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: FadeInAnimation(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Income / Expense Toggle
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: TransactionType.values.map((type) {
-                      final isSelected = _type == type;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _type = type),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.all(4),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? (type == TransactionType.income
-                                  ? AppColors.income
-                                  : AppColors.expense)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              type == TransactionType.income ? 'Income' : 'Expense',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.grey,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 20),
+          child: Column(
+            children: [
+              /// 🔥 TYPE SWITCH
+              _buildTypeToggle(),
 
-                // Amount with validation
-                EnhancedTextField(
-                  controller: _amountCtrl,
-                  label: 'Amount',
-                  hint: '0.00',
-                  icon: Iconsax.wallet,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: ValidationHelper.validateAmount,
-                ),
-                const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-                // Category Picker
-                CategorySelector(
-                  selected: _category,
-                  onSelected: (cat) => setState(() => _category = cat),
+              /// 🔥 CARD FORM
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(height: 16),
-
-                // Date Picker
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Iconsax.calendar),
-                    title: Text(
-                      '${_date.day}/${_date.month}/${_date.year}',
+                child: Column(
+                  children: [
+                    EnhancedTextField(
+                      controller: _amountCtrl,
+                      label: "Amount",
+                      hint: "0.00",
+                      icon: Iconsax.wallet,
+                      keyboardType:
+                      const TextInputType.numberWithOptions(
+                          decimal: true),
+                      validator: ValidationHelper.validateAmount,
                     ),
-                    trailing: const Icon(Iconsax.arrow_right_3, size: 16),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _date,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) setState(() => _date = picked);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
 
-                // Note with validation
-                EnhancedTextField(
-                  controller: _noteCtrl,
-                  label: 'Note',
-                  hint: 'Add a note (optional)',
-                  icon: Iconsax.note,
-                  maxLines: 3,
-                  minLines: 2,
-                  validator: ValidationHelper.validateNote,
-                ),
-                const SizedBox(height: 32),
+                    const SizedBox(height: 16),
 
-                // Submit Button
-                AppButton(
-                  label: isEditing ? 'Update Transaction' : 'Add Transaction',
-                  onPressed: _submit,
-                ),
+                    CategorySelector(
+                      selected: _category,
+                      onSelected: (c) =>
+                          setState(() => _category = c),
+                    ),
 
-                if (isEditing) ...[
-                  const SizedBox(height: 12),
-                  AppButton(
-                    label: 'Delete Transaction',
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete Transaction'),
-                          content: const Text(
-                            'Are you sure you want to delete this transaction?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<TransactionBloc>().add(
-                                  DeleteTransactionEvent(
-                                    id: widget.transaction!.id,
-                                  ),
-                                );
-                                Navigator.pop(ctx);
-                                context.pop();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                              ),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    isDestructive: true,
-                  ),
-                ],
-              ],
-            ),
+                    const SizedBox(height: 16),
+
+                    _buildDatePicker(),
+
+                    const SizedBox(height: 16),
+
+                    EnhancedTextField(
+                      controller: _noteCtrl,
+                      label: "Note",
+                      hint: "Optional note...",
+                      icon: Iconsax.note,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              AppButton(
+                label: isEditing ? "Update" : "Save",
+                onPressed: _submit,
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTypeToggle() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: TransactionType.values.map((type) {
+          final selected = _type == type;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _type = type),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? (type == TransactionType.income
+                      ? Colors.green
+                      : Colors.red)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  type.name.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? Colors.white : Colors.grey,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Iconsax.calendar),
+      title: Text(
+        "${_date.day}/${_date.month}/${_date.year}",
+      ),
+      trailing: const Icon(Iconsax.arrow_right_3),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _date,
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now(),
+        );
+
+        if (picked != null) setState(() => _date = picked);
+      },
     );
   }
 }

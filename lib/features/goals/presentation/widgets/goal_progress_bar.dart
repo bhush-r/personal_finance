@@ -1,31 +1,38 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
 
 class GoalProgressBar extends StatelessWidget {
-  final double progress; // 0.0 to 1.0
-  final double height;
+  final double progress;
 
   const GoalProgressBar({
     super.key,
     required this.progress,
-    this.height = 10,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = progress < 0.5
-        ? AppColors.income
-        : progress < 0.8
-        ? AppColors.warning
-        : AppColors.expense;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(height / 2),
-      child: LinearProgressIndicator(
-        value: progress.clamp(0.0, 1.0),
-        minHeight: height,
-        backgroundColor: Colors.grey.shade200,
-        valueColor: AlwaysStoppedAnimation(color),
+    return Container(
+      height: 10,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.grey.shade200,
+      ),
+      child: Stack(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            width: MediaQuery.of(context).size.width * progress,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [
+                  Colors.green,
+                  Colors.orange,
+                  Colors.red,
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

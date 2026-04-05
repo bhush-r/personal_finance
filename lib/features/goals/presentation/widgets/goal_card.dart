@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../domain/entities/goal.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 
 class GoalCard extends StatelessWidget {
   final Goal goal;
   final VoidCallback onAddProgress;
-  final VoidCallback? onDelete;  // ✅ ADDED: Delete callback
+  final VoidCallback? onDelete;
 
   const GoalCard({
     super.key,
     required this.goal,
     required this.onAddProgress,
-    this.onDelete,  // ✅ ADDED: Optional delete callback
+    this.onDelete,
   });
 
   @override
@@ -21,129 +20,106 @@ class GoalCard extends StatelessWidget {
     final progress = goal.getProgress();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white,
+            Colors.grey.shade50,
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 10,
+            color: Colors.black.withOpacity(0.04),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with title, description, and progress
+          /// 🔥 HEADER
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      goal.name,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (goal.description != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          goal.description!,
-                          style:
-                          Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ),
-                  ],
+                child: Text(
+                  goal.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${(progress * 100).toStringAsFixed(0)}%',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  // ✅ ADDED: Delete button
-                  if (onDelete != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: GestureDetector(
-                        onTap: onDelete,
-                        child: Icon(
-                          Iconsax.trash,
-                          size: 18,
-                          color: Colors.red.shade400,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+
+              /// DELETE
+              if (onDelete != null)
+                GestureDetector(
+                  onTap: onDelete,
+                  child: const Icon(Iconsax.trash, color: Colors.red),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
 
-          // Progress bar
+          if (goal.description != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              goal.description!,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+
+          /// 🔥 PROGRESS BAR
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 8,
+              minHeight: 10,
               backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation(
+                progress < 0.5
+                    ? Colors.green
+                    : progress < 0.8
+                    ? Colors.orange
+                    : Colors.red,
+              ),
             ),
           ),
+
           const SizedBox(height: 12),
 
-          // Saved/Target amounts and Add button
+          /// 🔥 AMOUNTS
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Saved',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  Text(
-                    CurrencyFormatter.format(goal.currentAmount),
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              Text(
+                "₹${CurrencyFormatter.format(goal.currentAmount)}",
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Target',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  Text(
-                    CurrencyFormatter.format(goal.targetAmount),
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: onAddProgress,
-                icon: const Icon(Iconsax.add, size: 16),
-                label: const Text('Add'),
+              Text(
+                "₹${CurrencyFormatter.format(goal.targetAmount)}",
+                style: TextStyle(color: Colors.grey.shade600),
               ),
             ],
+          ),
+
+          const SizedBox(height: 12),
+
+          /// 🔥 BUTTON
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: onAddProgress,
+              icon: const Icon(Iconsax.add, size: 16),
+              label: const Text("Add"),
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ),
         ],
       ),

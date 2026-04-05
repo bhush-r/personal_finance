@@ -1,6 +1,6 @@
-// lib/features/transactions/presentation/widgets/transaction_tile.dart
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+
 import '../../domain/entities/transaction.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -20,112 +20,135 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Optimization: RepaintBoundary isolates this tile's paint layer
-    return RepaintBoundary(
-      child: Dismissible(
-        key: Key(transaction.id),
-        direction: DismissDirection.endToStart,
-        onDismissed: (_) => onDelete(),
-        background: _buildDeleteBackground(),
-        child: _buildTileContent(context),
-      ),
-    );
-  }
-
-  Widget _buildDeleteBackground() {
-    return Container(
-      alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.red.shade500,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Icon(Iconsax.trash, color: Colors.white),
-    );
-  }
-
-  Widget _buildTileContent(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
-    final color = isIncome ? AppColors.income : AppColors.expense;
-    final categoryColor = AppColors.categoryColors[transaction.category.name.toLowerCase()] ?? AppColors.primary;
+    final amountColor = isIncome ? Colors.green : Colors.red;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+    final categoryColor =
+        AppColors.categoryColors[transaction.category.name] ??
+            AppColors.primary;
+
+    return Dismissible(
+      key: Key(transaction.id),
+
+      /// 👉 Swipe only from right to left
+      direction: DismissDirection.endToStart,
+
+      /// 👉 Trigger delete
+      onDismissed: (_) => onDelete(),
+
+      /// 👉 Background UI while swiping
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(right: 20),
+        alignment: Alignment.centerRight,
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.divider),
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(18),
         ),
-        child: Row(
-          children: [
-            _buildCategoryIcon(categoryColor),
-            const SizedBox(width: 12),
-            _buildInfoSection(context),
-            _buildAmountSection(isIncome, color),
-          ],
+        child: const Icon(
+          Iconsax.trash,
+          color: Colors.white,
+          size: 24,
         ),
       ),
-    );
-  }
 
-  Widget _buildCategoryIcon(Color color) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(_getIconForCategory(transaction.category), color: color, size: 22),
-    );
-  }
-
-  Widget _buildInfoSection(BuildContext context) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            transaction.category.name.toUpperCase(),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          if (transaction.note.isNotEmpty)
-            Text(
-              transaction.note,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      /// 👉 MAIN TILE
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 10,
             ),
-          Text(
-            DateFormatter.formatDate(transaction.date),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+            child: Row(
+              children: [
+                /// 🔥 CATEGORY ICON
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: categoryColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    _getIcon(transaction.category),
+                    color: categoryColor,
+                  ),
+                ),
+
+                const SizedBox(width: 14),
+
+                /// 🔥 TITLE + DATE
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.note.isNotEmpty
+                            ? transaction.note
+                            : transaction.category.name.toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        DateFormatter.formatDate(transaction.date),
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                /// 🔥 AMOUNT
+                Text(
+                  '${isIncome ? '+' : '-'} ${CurrencyFormatter.format(transaction.amount)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: amountColor,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildAmountSection(bool isIncome, Color color) {
-    return Text(
-      '${isIncome ? '+' : '-'} ${CurrencyFormatter.format(transaction.amount)}',
-      style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14),
-    );
-  }
-
-  IconData _getIconForCategory(TransactionCategory category) {
+  /// 🔥 CATEGORY ICON MAPPER
+  IconData _getIcon(TransactionCategory category) {
     switch (category) {
-      case TransactionCategory.food: return Iconsax.cup;
-      case TransactionCategory.transport: return Iconsax.car;
-      case TransactionCategory.shopping: return Iconsax.bag_2;
-      case TransactionCategory.health: return Iconsax.heart;
-      case TransactionCategory.bills: return Iconsax.receipt_2;
-      case TransactionCategory.salary: return Iconsax.money_recive;
-      case TransactionCategory.savings: return Iconsax.save_2;
-      case TransactionCategory.entertainment: return Iconsax.music;
-      default: return Iconsax.more;
+      case TransactionCategory.food:
+        return Iconsax.cup;
+      case TransactionCategory.transport:
+        return Iconsax.car;
+      case TransactionCategory.shopping:
+        return Iconsax.bag;
+      case TransactionCategory.health:
+        return Iconsax.heart;
+      case TransactionCategory.bills:
+        return Iconsax.receipt;
+      case TransactionCategory.salary:
+        return Iconsax.money_recive;
+      case TransactionCategory.savings:
+        return Iconsax.save_2;
+      case TransactionCategory.entertainment:
+        return Iconsax.music;
+      default:
+        return Iconsax.more;
     }
   }
 }

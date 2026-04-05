@@ -20,56 +20,72 @@ class GoalCubit extends Cubit<GoalState> {
     required this.deleteGoal,
   }) : super(const GoalInitial());
 
+  /// LOAD GOALS
   Future<void> loadGoals() async {
     emit(const GoalLoading());
+
     final result = await getGoals(NoParams());
+
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
           (goals) => emit(GoalLoaded(goals: goals)),
     );
   }
 
+  /// CREATE GOAL
   Future<void> createGoal(Goal goal) async {
-    emit(const GoalLoading());
     final result = await addGoal(AddGoalParams(goal: goal));
+
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) {
-        // After successful creation, reload goals and show success message
-        loadGoals();
-        emit(const GoalOperationSuccess(message: 'Goal created successfully'));
+          (_) async {
+        await loadGoals(); // ✅ ONLY THIS
       },
     );
   }
 
+  /// ADD PROGRESS
   Future<void> addProgress(Goal goal, double amount) async {
     final updated = goal.copyWith(
-      currentAmount: (goal.currentAmount + amount).clamp(0.0, goal.targetAmount),
+      currentAmount:
+      (goal.currentAmount + amount).clamp(0.0, goal.targetAmount),
     );
+
     final result = await updateGoal(UpdateGoalParams(goal: updated));
+
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) => loadGoals(),
+          (_) async {
+        await loadGoals(); // ✅ refresh UI
+      },
     );
   }
 
+  /// NO-SPEND STREAK
   Future<void> incrementNoSpendStreak(Goal goal) async {
     final updated = goal.copyWith(
       noSpendDays: (goal.noSpendDays ?? 0) + 1,
     );
+
     final result = await updateGoal(UpdateGoalParams(goal: updated));
+
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) => loadGoals(),
+          (_) async {
+        await loadGoals();
+      },
     );
   }
 
+  /// DELETE GOAL
   Future<void> removeGoal(String id) async {
-    emit(const GoalLoading());
     final result = await deleteGoal(DeleteGoalParams(id: id));
+
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) => loadGoals(),
+          (_) async {
+        await loadGoals();
+      },
     );
   }
 }

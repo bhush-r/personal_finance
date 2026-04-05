@@ -52,16 +52,13 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       AddTransactionEvent event,
       Emitter<TransactionState> emit,
       ) async {
-    emit(const TransactionLoading());
     final result = await addTransaction(
       AddTransactionParams(transaction: event.transaction),
     );
+
     result.fold(
           (failure) => emit(TransactionError(message: failure.message)),
-          (_) {
-        // Reload transactions without await
-        _loadAndRefresh(emit);
-      },
+          (_) => add(const LoadTransactions()),
     );
   }
 

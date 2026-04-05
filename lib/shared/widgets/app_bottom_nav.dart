@@ -14,34 +14,31 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: shell,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: shell.currentIndex,
-        onTap: (index) => _onNavTap(index),
-        // ✅ FIXED: All Icon() must be const Icon()
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Iconsax.home),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Iconsax.receipt),
-            label: 'Transactions',
-          ),
-          BottomNavigationBarItem(
-            // ✅ FIXED: Changed from Iconsax.target to Iconsax.flag
-            icon: Icon(Iconsax.flag),
-            label: 'Goals',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Iconsax.chart_2),
-            label: 'Insights',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Iconsax.setting),
-            label: 'Settings',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+            )
+          ],
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: shell.currentIndex,
+          onTap: (index) => _onNavTap(index),
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.grey,
+          showUnselectedLabels: true,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Iconsax.home), label: 'Dashboard'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.receipt), label: 'Transactions'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.flag), label: 'Goals'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: 'Insights'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.setting), label: 'Settings'),
+          ],
+        ),
       ),
     );
   }

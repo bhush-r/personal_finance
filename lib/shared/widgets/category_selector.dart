@@ -13,25 +13,25 @@ class CategorySelector extends StatelessWidget {
     required this.onSelected,
   });
 
-  IconData _getCategoryIcon(TransactionCategory category) {
+  IconData _getIcon(TransactionCategory category) {
     switch (category) {
       case TransactionCategory.food:
         return Iconsax.cup;
       case TransactionCategory.transport:
         return Iconsax.car;
       case TransactionCategory.shopping:
-        return Iconsax.bag_2;
+        return Iconsax.bag;
       case TransactionCategory.health:
         return Iconsax.heart;
       case TransactionCategory.bills:
-        return Iconsax.receipt_2;
+        return Iconsax.receipt;
       case TransactionCategory.salary:
         return Iconsax.money_recive;
       case TransactionCategory.savings:
         return Iconsax.save_2;
       case TransactionCategory.entertainment:
         return Iconsax.music;
-      case TransactionCategory.other:
+      default:
         return Iconsax.more;
     }
   }
@@ -41,42 +41,55 @@ class CategorySelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Category',
-          style: Theme.of(context).textTheme.titleSmall,
+        const Text(
+          "Category",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+
+        /// 🔥 GRID STYLE (premium)
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 4,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1,
           children: TransactionCategory.values.map((cat) {
             final isSelected = cat == selected;
+
+            final color =
+                AppColors.categoryColors[cat.name] ?? AppColors.primary;
+
             return GestureDetector(
               onTap: () => onSelected(cat),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.categoryColors[cat.name.toLowerCase()] ?? AppColors.primary
+                      ? color.withOpacity(0.15)
                       : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? color : Colors.transparent,
+                    width: 1.5,
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      _getCategoryIcon(cat),
-                      size: 16,
-                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      _getIcon(cat),
+                      color: isSelected ? color : Colors.grey.shade600,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      cat.name.replaceFirst(cat.name[0], cat.name[0].toUpperCase()),
+                      cat.name,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                        color:
+                        isSelected ? color : Colors.grey.shade700,
                       ),
                     ),
                   ],

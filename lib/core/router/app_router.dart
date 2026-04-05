@@ -1,11 +1,19 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+
+// Screens
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/screens/add_edit_transaction_screen.dart';
 import '../../features/goals/presentation/screens/goals_screen.dart';
+import '../../features/goals/presentation/screens/add_goal_screen.dart';
 import '../../features/insights/presentation/screens/insights_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+
+// Models
+import '../../features/goals/domain/entities/goal.dart';
+
+// Layout
 import '../../shared/widgets/app_bottom_nav.dart';
 
 class AppRouter {
@@ -14,11 +22,13 @@ class AppRouter {
   static final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/dashboard',
+
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppBottomNav(shell: shell),
+
         branches: [
-          // Dashboard Branch
+          /// DASHBOARD
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -28,7 +38,7 @@ class AppRouter {
             ],
           ),
 
-          // Transactions Branch
+          /// TRANSACTIONS
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -38,7 +48,7 @@ class AppRouter {
                   GoRoute(
                     path: 'add',
                     builder: (_, state) => AddEditTransactionScreen(
-                      transaction: state.extra as dynamic, // null = add mode
+                      transaction: state.extra as dynamic,
                     ),
                   ),
                 ],
@@ -46,17 +56,27 @@ class AppRouter {
             ],
           ),
 
-          // Goals Branch
+          /// GOALS
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/goals',
                 builder: (_, __) => const GoalsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'add',
+                    builder: (_, state) {
+                      final type =
+                          state.extra as GoalType? ?? GoalType.savings;
+                      return AddGoalScreen(goalType: type);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
 
-          // Insights Branch
+          /// INSIGHTS
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -66,7 +86,7 @@ class AppRouter {
             ],
           ),
 
-          // ✅ ADDED: Settings Branch
+          /// SETTINGS
           StatefulShellBranch(
             routes: [
               GoRoute(

@@ -23,6 +23,12 @@ class AmountInputField extends StatelessWidget {
         prefixText: '₹ ',
         prefixIcon: const Icon(Iconsax.wallet),
         hintText: '0.00',
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
       ),
       validator: validator ?? (value) {
         if (value?.isEmpty ?? true) return 'Amount is required';

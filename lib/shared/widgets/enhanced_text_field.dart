@@ -34,92 +34,92 @@ class EnhancedTextField extends StatefulWidget {
 
 class _EnhancedTextFieldState extends State<EnhancedTextField> {
   late FocusNode _focusNode;
-  String? _errorMessage;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
-    _focusNode.addListener(_validateOnFocus);
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus && widget.validator != null) {
+        setState(() {
+          _error = widget.validator!(widget.controller.text);
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_validateOnFocus);
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _validateOnFocus() {
-    if (!_focusNode.hasFocus && widget.validator != null) {
-      setState(() {
-        _errorMessage = widget.validator!(widget.controller.text);
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isFocused = _focusNode.hasFocus;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
-          controller: widget.controller,
-          focusNode: _focusNode,
-          keyboardType: widget.keyboardType,
-          obscureText: widget.obscureText,
-          maxLines: widget.maxLines,
-          minLines: widget.minLines,
-          onChanged: (value) {
-            setState(() {
-              if (widget.validator != null && !_focusNode.hasFocus) {
-                _errorMessage = widget.validator!(value);
-              }
-            });
-            widget.onChanged?.call();
-          },
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            prefixIcon: widget.icon != null ? Icon(widget.icon) : null,
-            suffix: widget.suffix,
-            errorText: _errorMessage,
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
+        /// LABEL
+        Text(
+          widget.label,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        /// FIELD
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: _error != null
+                  ? Colors.red
+                  : isFocused
+                  ? Colors.black
+                  : Colors.transparent,
+              width: 1.5,
             ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            keyboardType: widget.keyboardType,
+            obscureText: widget.obscureText,
+            maxLines: widget.maxLines,
+            minLines: widget.minLines,
+            onChanged: (val) {
+              widget.onChanged?.call();
+            },
+            decoration: InputDecoration(
+              hintText: widget.hint,
+              prefixIcon:
+              widget.icon != null ? Icon(widget.icon) : null,
+              suffixIcon: widget.suffix,
+              border: InputBorder.none,
+              contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
           ),
         ),
-        if (_errorMessage != null) ...[
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info,
-                  size: 16,
-                  color: Colors.red.shade400,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(
-                      color: Colors.red.shade400,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+
+        /// ERROR
+        if (_error != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _error!,
+            style: const TextStyle(
+              color: Colors.red,
+              fontSize: 12,
             ),
-          ),
-        ],
+          )
+        ]
       ],
     );
   }

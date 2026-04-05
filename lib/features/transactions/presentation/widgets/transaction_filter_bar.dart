@@ -1,4 +1,3 @@
-// lib/features/transactions/presentation/widgets/transaction_filter_bar.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
@@ -42,7 +41,8 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+
+    _debounce = Timer(const Duration(milliseconds: 350), () {
       widget.onSearchChanged(query);
     });
   }
@@ -51,68 +51,98 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
-          controller: _searchCtrl,
-          decoration: InputDecoration(
-            hintText: 'Search transactions...',
-            prefixIcon: const Icon(Iconsax.search_normal),
-            suffixIcon: _searchCtrl.text.isNotEmpty
-                ? IconButton(
-              icon: const Icon(Iconsax.close_circle),
-              onPressed: () {
-                _searchCtrl.clear();
-                widget.onSearchChanged('');
-              },
-            )
-                : null,
+        /// 🔥 MODERN SEARCH BAR
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 10,
+                color: Colors.black.withOpacity(0.04),
+              )
+            ],
           ),
-          onChanged: _onSearchChanged, // Debounced call
+          child: TextField(
+            controller: _searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'Search transactions...',
+              prefixIcon: const Icon(Iconsax.search_normal),
+              suffixIcon: _searchCtrl.text.isNotEmpty
+                  ? IconButton(
+                icon: const Icon(Iconsax.close_circle),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  widget.onSearchChanged('');
+                },
+              )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onChanged: _onSearchChanged,
+          ),
         ),
-        const SizedBox(height: 12),
-        _buildTypeFilters(),
+
+        const SizedBox(height: 14),
+
+        /// 🔥 FILTER CHIPS
+        SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildChip('All', widget.selectedType == null, () {
+                widget.onTypeChanged(null);
+              }),
+              const SizedBox(width: 8),
+
+              ...TransactionType.values.map((type) {
+                final isSelected = widget.selectedType == type;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _buildChip(
+                    type.name.toUpperCase(),
+                    isSelected,
+                        () => widget.onTypeChanged(isSelected ? null : type),
+                    color: type == TransactionType.income
+                        ? AppColors.income
+                        : AppColors.expense,
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildTypeFilters() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildFilterChip('All', widget.selectedType == null, () => widget.onTypeChanged(null)),
-          const SizedBox(width: 8),
-          ...TransactionType.values.map((type) {
-            final isSelected = widget.selectedType == type;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _buildFilterChip(
-                type.name.toUpperCase(),
-                isSelected,
-                    () => widget.onTypeChanged(isSelected ? null : type),
-                color: type == TransactionType.income ? AppColors.income : AppColors.expense,
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap, {Color? color}) {
+  Widget _buildChip(
+      String label,
+      bool selected,
+      VoidCallback onTap, {
+        Color? color,
+      }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? (color ?? AppColors.primary) : Colors.grey.shade100,
+          color: selected
+              ? (color ?? AppColors.primary)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.grey.shade700,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : Colors.grey.shade700,
           ),
         ),
       ),
