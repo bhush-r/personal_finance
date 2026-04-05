@@ -7,6 +7,7 @@ import '../../features/transactions/presentation/screens/transactions_screen.dar
 import '../../features/transactions/presentation/screens/add_edit_transaction_screen.dart';
 import '../../features/goals/presentation/screens/goals_screen.dart';
 import '../../features/goals/presentation/screens/add_goal_screen.dart';
+import '../../features/goals/presentation/screens/saving_streak_screen.dart';
 import '../../features/insights/presentation/screens/insights_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 
@@ -18,15 +19,14 @@ import '../../shared/widgets/app_bottom_nav.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final _goalsNavigatorKey = GlobalKey<NavigatorState>();
 
   static final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/dashboard',
-
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppBottomNav(shell: shell),
-
         branches: [
           /// DASHBOARD
           StatefulShellBranch(
@@ -47,6 +47,7 @@ class AppRouter {
                 routes: [
                   GoRoute(
                     path: 'add',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => AddEditTransactionScreen(
                       transaction: state.extra as dynamic,
                     ),
@@ -56,8 +57,9 @@ class AppRouter {
             ],
           ),
 
-          /// GOALS
+          /// GOALS WITH STREAKS
           StatefulShellBranch(
+            navigatorKey: _goalsNavigatorKey,
             routes: [
               GoRoute(
                 path: '/goals',
@@ -65,11 +67,17 @@ class AppRouter {
                 routes: [
                   GoRoute(
                     path: 'add',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) {
                       final type =
                           state.extra as GoalType? ?? GoalType.savings;
                       return AddGoalScreen(goalType: type);
                     },
+                  ),
+                  GoRoute(
+                    path: 'streaks',
+                    parentNavigatorKey: _goalsNavigatorKey,
+                    builder: (_, __) => const SavingStreakScreen(),
                   ),
                 ],
               ),

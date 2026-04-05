@@ -3,15 +3,40 @@ import 'package:iconsax/iconsax.dart';
 import '../../features/transactions/domain/entities/transaction.dart';
 import '../../core/theme/app_colors.dart';
 
-class CategorySelector extends StatelessWidget {
+class CategorySelector extends StatefulWidget {
   final TransactionCategory selected;
   final Function(TransactionCategory) onSelected;
+  final bool showLabels;
 
   const CategorySelector({
     super.key,
     required this.selected,
     required this.onSelected,
+    this.showLabels = true,
   });
+
+  @override
+  State<CategorySelector> createState() => _CategorySelectorState();
+}
+
+class _CategorySelectorState extends State<CategorySelector>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   IconData _getIcon(TransactionCategory category) {
     switch (category) {
@@ -46,8 +71,6 @@ class CategorySelector extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         ),
         const SizedBox(height: 12),
-
-        /// 🔥 GRID STYLE (premium)
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -56,43 +79,70 @@ class CategorySelector extends StatelessWidget {
           mainAxisSpacing: 10,
           childAspectRatio: 1,
           children: TransactionCategory.values.map((cat) {
-            final isSelected = cat == selected;
-
+            final isSelected = cat == widget.selected;
             final color =
                 AppColors.categoryColors[cat.name] ?? AppColors.primary;
 
-            return GestureDetector(
-              onTap: () => onSelected(cat),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? color.withOpacity(0.15)
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isSelected ? color : Colors.transparent,
-                    width: 1.5,
-                  ),
+            return ScaleTransition(
+              scale: isSelected
+                  ? Tween<double>(begin: 1.0, end: 1.05).animate(
+                CurvedAnimation(
+                  parent: _animationController,
+                  curve: Curves.elasticOut,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _getIcon(cat),
-                      color: isSelected ? color : Colors.grey.shade600,
+              )
+                  : AlwaysStoppedAnimation(1.0),
+              child: GestureDetector(
+                onTap: () {
+                  widget.onSelected(cat);
+                  _animationController.forward().then((_) {
+                    _animationController.reverse();
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.15)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected ? color : Colors.transparent,
+                      width: 2,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      cat.name,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color:
-                        isSelected ? color : Colors.grey.shade700,
+                    boxShadow: isSelected
+                        ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                  ],
+                    ]
+                        : [],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _getIcon(cat),
+                        color: isSelected ? color : Colors.grey.shade600,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 6),
+                      if (widget.showLabels)
+                        Text(
+                          cat.name,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? color : Colors.grey.shade700,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );

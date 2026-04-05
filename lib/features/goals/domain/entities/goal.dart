@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum GoalType { savings, noSpend, budgetCap }
+enum GoalType { savings, noSpend, budgetCap, investment, debt }
 
 class Goal extends Equatable {
   final String id;

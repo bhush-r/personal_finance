@@ -38,13 +38,14 @@ class GoalCubit extends Cubit<GoalState> {
 
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) async {
-        await loadGoals(); // ✅ ONLY THIS
+          (_) {
+        // Don't use async here, use loadGoals() directly
+        loadGoals();
       },
     );
   }
 
-  /// ADD PROGRESS
+  /// ADD PROGRESS - 🔥 FIXED
   Future<void> addProgress(Goal goal, double amount) async {
     final updated = goal.copyWith(
       currentAmount:
@@ -55,8 +56,9 @@ class GoalCubit extends Cubit<GoalState> {
 
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) async {
-        await loadGoals(); // ✅ refresh UI
+          (_) {
+        // Properly refresh UI
+        loadGoals();
       },
     );
   }
@@ -71,8 +73,8 @@ class GoalCubit extends Cubit<GoalState> {
 
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) async {
-        await loadGoals();
+          (_) {
+        loadGoals();
       },
     );
   }
@@ -83,8 +85,8 @@ class GoalCubit extends Cubit<GoalState> {
 
     result.fold(
           (failure) => emit(GoalError(message: failure.message)),
-          (_) async {
-        await loadGoals();
+          (_) {
+        loadGoals();
       },
     );
   }

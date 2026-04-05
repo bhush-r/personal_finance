@@ -26,6 +26,7 @@ import 'features/goals/domain/usecases/delete_goal.dart';
 import 'features/goals/domain/usecases/get_goals.dart';
 import 'features/goals/domain/usecases/update_goal.dart';
 import 'features/goals/presentation/cubit/goal_cubit.dart';
+import 'features/goals/presentation/cubit/saving_streak_cubit.dart';
 import 'features/insights/data/datasources/insights_local_datasource.dart';
 import 'features/insights/data/repositories/insights_repository_impl.dart';
 import 'features/insights/domain/repositories/insights_repository.dart';
@@ -39,6 +40,7 @@ import 'features/settings/domain/usecases/save_preferences.dart';
 import 'features/settings/presentation/cubit/settings_cubit.dart';
 import 'shared/services/notification_service.dart';
 import 'shared/services/biometric_service.dart';
+import 'core/constants/currency_constants.dart';
 
 final sl = GetIt.instance;
 
@@ -109,6 +111,9 @@ Future<void> init() async {
     filterTransactions: sl(),
   ));
 
+
+  // ✨ Currency Support
+  sl.registerSingleton<CurrencyConstants>(CurrencyConstants());
   // ══════════════════════════════════════════════════════════════════════════
   // ╔═══════════════════════════════════════════════════════════════════════╗
   // ║                     DASHBOARD FEATURE                                 ║
@@ -156,13 +161,15 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdateGoal(sl()));
   sl.registerLazySingleton(() => DeleteGoal(sl()));
 
-  // Cubit
+  // Cubits
   sl.registerFactory(() => GoalCubit(
     getGoals: sl(),
     addGoal: sl(),
     updateGoal: sl(),
     deleteGoal: sl(),
   ));
+
+  sl.registerFactory(() => SavingStreakCubit());
 
   // ══════════════════════════════════════════════════════════════════════════
   // ╔═══════════════════════════════════════════════════════════════════════╗

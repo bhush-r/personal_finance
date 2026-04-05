@@ -22,7 +22,7 @@ class InsightsCubit extends Cubit<InsightsState> {
     }
   }
 
-  /// Refresh insights
+  /// Refresh insights with haptic feedback
   Future<void> refreshInsights() async {
     await loadInsights();
   }

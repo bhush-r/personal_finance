@@ -6,9 +6,12 @@ class UserPreferences extends Equatable {
   final bool darkMode;
   final bool enableNotifications;
   final bool enableBiometric;
-  final String currency;
+  final String currency; // Currency code like 'INR', 'USD'
   final String language;
   final DateTime? lastBackup;
+  final bool enableReminders; // ✨ NEW
+  final bool enableDataExport; // ✨ NEW
+  final DateTime? lastDataExport; // ✨ NEW
 
   const UserPreferences({
     this.userName,
@@ -16,9 +19,12 @@ class UserPreferences extends Equatable {
     this.darkMode = false,
     this.enableNotifications = true,
     this.enableBiometric = false,
-    this.currency = '₹',
+    this.currency = 'INR',
     this.language = 'en',
     this.lastBackup,
+    this.enableReminders = true,
+    this.enableDataExport = false,
+    this.lastDataExport,
   });
 
   UserPreferences copyWith({
@@ -30,6 +36,9 @@ class UserPreferences extends Equatable {
     String? currency,
     String? language,
     DateTime? lastBackup,
+    bool? enableReminders,
+    bool? enableDataExport,
+    DateTime? lastDataExport,
   }) {
     return UserPreferences(
       userName: userName ?? this.userName,
@@ -40,6 +49,9 @@ class UserPreferences extends Equatable {
       currency: currency ?? this.currency,
       language: language ?? this.language,
       lastBackup: lastBackup ?? this.lastBackup,
+      enableReminders: enableReminders ?? this.enableReminders,
+      enableDataExport: enableDataExport ?? this.enableDataExport,
+      lastDataExport: lastDataExport ?? this.lastDataExport,
     );
   }
 
@@ -53,5 +65,8 @@ class UserPreferences extends Equatable {
     currency,
     language,
     lastBackup,
+    enableReminders,
+    enableDataExport,
+    lastDataExport,
   ];
 }

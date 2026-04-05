@@ -39,7 +39,6 @@ class SettingsCubit extends Cubit<SettingsState> {
             (failure) => emit(SettingsError(message: failure.message)),
             (_) {
           emit(SettingsLoaded(preferences: preferences));
-          // Show success message briefly
           Future.delayed(const Duration(milliseconds: 500), () {
             if (state is SettingsLoaded) {
               emit(SettingsSaved(message: 'Settings saved successfully'));
@@ -83,11 +82,39 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// Update currency setting
+  /// ✨ Update currency setting
   Future<void> updateCurrency(String currency) async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
       final updated = currentPrefs.copyWith(currency: currency);
+      await updatePreferences(updated);
+    }
+  }
+
+  /// ✨ Update reminders setting
+  Future<void> toggleReminders(bool enabled) async {
+    if (state is SettingsLoaded) {
+      final currentPrefs = (state as SettingsLoaded).preferences;
+      final updated = currentPrefs.copyWith(enableReminders: enabled);
+      await updatePreferences(updated);
+    }
+  }
+
+  /// ✨ Update data export setting
+  Future<void> toggleDataExport(bool enabled) async {
+    if (state is SettingsLoaded) {
+      final currentPrefs = (state as SettingsLoaded).preferences;
+      final updated = currentPrefs.copyWith(enableDataExport: enabled);
+      await updatePreferences(updated);
+    }
+  }
+
+  /// ✨ Update last export date
+  Future<void> updateLastExportDate() async {
+    if (state is SettingsLoaded) {
+      final currentPrefs = (state as SettingsLoaded).preferences;
+      final updated =
+      currentPrefs.copyWith(lastDataExport: DateTime.now());
       await updatePreferences(updated);
     }
   }
@@ -97,7 +124,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     try {
       emit(const SettingsLoading());
       // TODO: Implement logout logic (clear storage, navigate to login, etc.)
-      // For now, just reset to initial state
       emit(const SettingsInitial());
     } catch (e) {
       emit(SettingsError(message: 'Logout failed: $e'));

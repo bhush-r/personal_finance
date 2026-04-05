@@ -18,9 +18,12 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
     final darkMode = prefs.getBool('dark_mode') ?? false;
     final enableNotifications = prefs.getBool('enable_notifications') ?? true;
     final enableBiometric = prefs.getBool('enable_biometric') ?? false;
-    final currency = prefs.getString('currency') ?? '₹';
+    final currency = prefs.getString('currency') ?? 'INR';
     final language = prefs.getString('language') ?? 'en';
     final lastBackupStr = prefs.getString('last_backup');
+    final enableReminders = prefs.getBool('enable_reminders') ?? true;
+    final enableDataExport = prefs.getBool('enable_data_export') ?? false;
+    final lastDataExportStr = prefs.getString('last_data_export');
 
     return UserPreferences(
       userName: userName,
@@ -31,6 +34,10 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
       currency: currency,
       language: language,
       lastBackup: lastBackupStr != null ? DateTime.parse(lastBackupStr) : null,
+      enableReminders: enableReminders,
+      enableDataExport: enableDataExport,
+      lastDataExport:
+      lastDataExportStr != null ? DateTime.parse(lastDataExportStr) : null,
     );
   }
 
@@ -54,6 +61,15 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
         prefs.setString('last_backup', preferences.lastBackup!.toIso8601String())
       else
         prefs.remove('last_backup'),
+      prefs.setBool('enable_reminders', preferences.enableReminders),
+      prefs.setBool('enable_data_export', preferences.enableDataExport),
+      if (preferences.lastDataExport != null)
+        prefs.setString(
+          'last_data_export',
+          preferences.lastDataExport!.toIso8601String(),
+        )
+      else
+        prefs.remove('last_data_export'),
     ]);
   }
 }

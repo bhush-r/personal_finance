@@ -19,9 +19,24 @@ class Insight extends Equatable {
     required this.averageDailySpend,
   });
 
+  /// Calculate weekly change percentage
   double getWeeklyChange() {
     if (lastWeekExpense == 0) return 0;
     return ((thisWeekExpense - lastWeekExpense) / lastWeekExpense) * 100;
+  }
+
+  /// Check if spending increased
+  bool isSpendingIncreased() => getWeeklyChange() > 0;
+
+  /// Get total spent across all categories
+  double getTotalSpent() =>
+      categoryBreakdown.values.fold(0, (sum, val) => sum + val);
+
+  /// Get top 3 categories
+  List<MapEntry<String, double>> getTopThreeCategories() {
+    final sortedEntries = categoryBreakdown.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sortedEntries.take(3).toList();
   }
 
   @override
