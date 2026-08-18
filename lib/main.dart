@@ -1,7 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'features/goals/presentation/cubit/goal_cubit.dart';
 import 'features/goals/presentation/cubit/saving_streak_cubit.dart';
@@ -12,11 +14,30 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/settings/presentation/cubit/settings_cubit.dart';
+import 'firebase_options.dart'; // Import the generated file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase with configuration options
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+  }
+  
+  // Initialize Hive
   await Hive.initFlutter();
-  await di.init();
+  
+  // Dependency Injection
+  try {
+    await di.init();
+  } catch (e) {
+    debugPrint('DI initialization failed: $e');
+  }
+  
   runApp(const MyApp());
 }
 
@@ -28,6 +49,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        BlocProvider(create: (_) => di.sl<AuthBloc>()..add(AuthCheckRequested())),
         BlocProvider(create: (_) => di.sl<TransactionBloc>()),
         BlocProvider(create: (_) => di.sl<DashboardBloc>()),
         BlocProvider(create: (_) => di.sl<GoalCubit>()),

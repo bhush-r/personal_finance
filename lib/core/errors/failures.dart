@@ -14,3 +14,7 @@ class ServerFailure extends Failure {
 class ValidationFailure extends Failure {
   const ValidationFailure({required super.message});
 }
+
+class AuthFailure extends Failure {
+  const AuthFailure({required super.message});
+}

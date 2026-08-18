@@ -1,7 +1,10 @@
-import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 // Screens
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/screens/add_edit_transaction_screen.dart';
@@ -19,16 +22,33 @@ import '../../shared/widgets/app_bottom_nav.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
-  static final _goalsNavigatorKey = GlobalKey<NavigatorState>();
+  static final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
   static final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/dashboard',
+    initialLocation: '/login',
+    redirect: (context, state) {
+      final authState = context.read<AuthBloc>().state;
+      final bool loggingIn = state.matchedLocation == '/login';
+
+      if (authState is! Authenticated) {
+        return loggingIn ? null : '/login';
+      }
+
+      if (loggingIn) {
+        return '/dashboard';
+      }
+
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppBottomNav(shell: shell),
         branches: [
-          /// DASHBOARD
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -37,8 +57,6 @@ class AppRouter {
               ),
             ],
           ),
-
-          /// TRANSACTIONS
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -56,10 +74,7 @@ class AppRouter {
               ),
             ],
           ),
-
-          /// GOALS WITH STREAKS
           StatefulShellBranch(
-            navigatorKey: _goalsNavigatorKey,
             routes: [
               GoRoute(
                 path: '/goals',
@@ -69,22 +84,18 @@ class AppRouter {
                     path: 'add',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) {
-                      final type =
-                          state.extra as GoalType? ?? GoalType.savings;
+                      final type = state.extra as GoalType? ?? GoalType.savings;
                       return AddGoalScreen(goalType: type);
                     },
                   ),
                   GoRoute(
                     path: 'streaks',
-                    parentNavigatorKey: _goalsNavigatorKey,
                     builder: (_, __) => const SavingStreakScreen(),
                   ),
                 ],
               ),
             ],
           ),
-
-          /// INSIGHTS
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -93,8 +104,6 @@ class AppRouter {
               ),
             ],
           ),
-
-          /// SETTINGS
           StatefulShellBranch(
             routes: [
               GoRoute(

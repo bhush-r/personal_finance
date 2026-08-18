@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/entities/user_preferences.dart';
 import '../../domain/usecases/get_preferences.dart';
 import '../../domain/usecases/save_preferences.dart';
@@ -8,10 +9,12 @@ import 'settings_state.dart';
 class SettingsCubit extends Cubit<SettingsState> {
   final GetPreferences getPreferences;
   final SavePreferences savePreferences;
+  final AuthRepository authRepository;
 
   SettingsCubit({
     required this.getPreferences,
     required this.savePreferences,
+    required this.authRepository,
   }) : super(const SettingsInitial());
 
   /// Load user preferences
@@ -20,8 +23,8 @@ class SettingsCubit extends Cubit<SettingsState> {
       emit(const SettingsLoading());
       final result = await getPreferences(NoParams());
       result.fold(
-            (failure) => emit(SettingsError(message: failure.message)),
-            (preferences) => emit(SettingsLoaded(preferences: preferences)),
+        (failure) => emit(SettingsError(message: failure.message)),
+        (preferences) => emit(SettingsLoaded(preferences: preferences)),
       );
     } catch (e) {
       emit(SettingsError(message: 'Failed to load preferences: $e'));
@@ -36,8 +39,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         SavePreferencesParams(preferences: preferences),
       );
       result.fold(
-            (failure) => emit(SettingsError(message: failure.message)),
-            (_) {
+        (failure) => emit(SettingsError(message: failure.message)),
+        (_) {
           emit(SettingsLoaded(preferences: preferences));
           Future.delayed(const Duration(milliseconds: 500), () {
             if (state is SettingsLoaded) {
@@ -55,7 +58,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// Update dark mode setting
   Future<void> toggleDarkMode(bool isDark) async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
@@ -64,7 +66,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// Update notifications setting
   Future<void> toggleNotifications(bool enabled) async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
@@ -73,7 +74,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// Update biometric setting
   Future<void> toggleBiometric(bool enabled) async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
@@ -82,7 +82,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// ✨ Update currency setting
   Future<void> updateCurrency(String currency) async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
@@ -91,7 +90,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// ✨ Update reminders setting
   Future<void> toggleReminders(bool enabled) async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
@@ -100,30 +98,18 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// ✨ Update data export setting
-  Future<void> toggleDataExport(bool enabled) async {
-    if (state is SettingsLoaded) {
-      final currentPrefs = (state as SettingsLoaded).preferences;
-      final updated = currentPrefs.copyWith(enableDataExport: enabled);
-      await updatePreferences(updated);
-    }
-  }
-
-  /// ✨ Update last export date
   Future<void> updateLastExportDate() async {
     if (state is SettingsLoaded) {
       final currentPrefs = (state as SettingsLoaded).preferences;
-      final updated =
-      currentPrefs.copyWith(lastDataExport: DateTime.now());
+      final updated = currentPrefs.copyWith(lastDataExport: DateTime.now());
       await updatePreferences(updated);
     }
   }
 
-  /// Logout
   Future<void> logout() async {
     try {
       emit(const SettingsLoading());
-      // TODO: Implement logout logic (clear storage, navigate to login, etc.)
+      await authRepository.signOut();
       emit(const SettingsInitial());
     } catch (e) {
       emit(SettingsError(message: 'Logout failed: $e'));
