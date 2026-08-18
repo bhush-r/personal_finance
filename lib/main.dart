@@ -14,38 +14,49 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/settings/presentation/cubit/settings_cubit.dart';
-import 'firebase_options.dart'; // Import the generated file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase with configuration options
+  Object? startupError;
+
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
-  }
-  
-  // Initialize Hive
-  await Hive.initFlutter();
-  
-  // Dependency Injection
-  try {
+    await Firebase.initializeApp();
+    await Hive.initFlutter();
     await di.init();
-  } catch (e) {
-    debugPrint('DI initialization failed: $e');
+  } catch (e, stackTrace) {
+    debugPrint('Startup initialization failed: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    startupError = e;
   }
-  
-  runApp(const MyApp());
+
+  runApp(MyApp(startupError: startupError));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Object? startupError;
+
+  const MyApp({super.key, this.startupError});
 
   @override
   Widget build(BuildContext context) {
+    if (startupError != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Unable to start app. Please check Firebase/Hive setup and restart.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),

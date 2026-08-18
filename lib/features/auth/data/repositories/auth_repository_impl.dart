@@ -72,15 +72,20 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Option<UserEntity>> get currentUser async {
-    final user = firebaseAuth.currentUser;
-    if (user != null) {
-      return Some(UserEntity(
-        id: user.uid,
-        email: user.email ?? '',
-        name: user.displayName,
-        photoUrl: user.photoURL,
-      ));
+    try {
+      final user = firebaseAuth.currentUser;
+      if (user != null) {
+        return Some(UserEntity(
+          id: user.uid,
+          email: user.email ?? '',
+          name: user.displayName,
+          photoUrl: user.photoURL,
+        ));
+      }
+    } catch (_) {
+      return none();
     }
+
     return none();
   }
 }

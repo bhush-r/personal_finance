@@ -1,5 +1,4 @@
 import 'package:intl/intl.dart';
-import '../../constants/currency_constants.dart';
 import '../constants/currency_constants.dart';
 
 class CurrencyFormatter {

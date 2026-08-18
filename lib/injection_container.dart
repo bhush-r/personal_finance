@@ -100,28 +100,20 @@ Future<void> init() async {
   );
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 3. ASYNC INITIALIZATIONS (Wrap in try-catch to prevent blocking startup)
+  // 3. ASYNC INITIALIZATIONS (Required dependencies for app startup)
   // ══════════════════════════════════════════════════════════════════════════
 
-  try {
-    final sharedPreferences = await SharedPreferences.getInstance();
-    sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
-  } catch (e) {
-    debugPrint('DI: SharedPreferences initialization failed: $e');
-  }
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 
-  try {
-    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TransactionModelAdapter());
-    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(GoalModelAdapter());
-    
-    final transactionBox = await Hive.openBox<TransactionModel>('transactions');
-    final goalsBox = await Hive.openBox<GoalModel>('goals');
-    
-    sl.registerLazySingleton<Box<TransactionModel>>(() => transactionBox);
-    sl.registerLazySingleton<Box<GoalModel>>(() => goalsBox);
-  } catch (e) {
-    debugPrint('DI: Hive initialization failed: $e');
-  }
+  if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TransactionModelAdapter());
+  if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(GoalModelAdapter());
+
+  final transactionBox = await Hive.openBox<TransactionModel>('transactions');
+  final goalsBox = await Hive.openBox<GoalModel>('goals');
+
+  sl.registerLazySingleton<Box<TransactionModel>>(() => transactionBox);
+  sl.registerLazySingleton<Box<GoalModel>>(() => goalsBox);
 
   // Initialize services but don't let them crash the whole DI process
   try {
