@@ -22,15 +22,32 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMultiline = maxLines > 1;
+
     return TextFormField(
       controller: controller,
+      scrollPadding: const EdgeInsets.only(top: 80, bottom: 200),
       maxLines: maxLines,
-      keyboardType: keyboardType,
+      keyboardType: isMultiline ? TextInputType.multiline : keyboardType,
+      textInputAction: isMultiline ? TextInputAction.newline : TextInputAction.next,
       validator: validator,
       decoration: InputDecoration(
         hintText: hintText,
         labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+        alignLabelWithHint: isMultiline,
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20) : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:forui/forui.dart';
 import 'package:iconsax/iconsax.dart';
-
 import '../../domain/entities/transaction.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
 
-class TransactionTile extends StatefulWidget {
+class TransactionTile extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -18,11 +17,6 @@ class TransactionTile extends StatefulWidget {
     required this.onDelete,
   });
 
-  @override
-  State<TransactionTile> createState() => _TransactionTileState();
-}
-
-class _TransactionTileState extends State<TransactionTile> {
   IconData _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
       case 'food':
@@ -48,45 +42,45 @@ class _TransactionTileState extends State<TransactionTile> {
 
   @override
   Widget build(BuildContext context) {
-    final isIncome = widget.transaction.type == TransactionType.income;
+    final isIncome = transaction.type == TransactionType.income;
     final amountColor = isIncome ? Colors.green : Colors.red;
 
-    return Dismissible(
-      key: Key(widget.transaction.id),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => widget.onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
-        child: const Icon(Iconsax.trash, color: Colors.white),
+    return FTile(
+      onPress: onTap,
+      prefix: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(_getCategoryIcon(transaction.category), size: 20),
       ),
-      child: ListTile(
-        onTap: widget.onTap,
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
+      title: Text(
+        transaction.category,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        transaction.note.isNotEmpty
+            ? transaction.note
+            : DateFormatter.formatDate(transaction.date),
+      ),
+      suffix: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${isIncome ? '+' : '-'} ${CurrencyFormatter.format(transaction.amount)}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: amountColor,
+            ),
           ),
-          child: Icon(_getCategoryIcon(widget.transaction.category)),
-        ),
-        title: Text(
-          widget.transaction.category,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          widget.transaction.note.isNotEmpty
-              ? widget.transaction.note
-              : DateFormatter.formatDate(widget.transaction.date),
-        ),
-        trailing: Text(
-          '${isIncome ? '+' : '-'} ${CurrencyFormatter.format(widget.transaction.amount)}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: amountColor,
+          const SizedBox(width: 8),
+          FButton.icon(
+            child: const Icon(Iconsax.trash, size: 16),
+            onPress: onDelete,
+            variant: FButtonVariant.ghost,
           ),
-        ),
+        ],
       ),
     );
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:forui/forui.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 import 'injection_container.dart' as di;
 import 'injection_container.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -17,7 +17,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await Hive.initFlutter();
-
   await di.init();
   runApp(const MyApp());
 }
@@ -54,6 +53,12 @@ class MyApp extends StatelessWidget {
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             title: 'Personal Finance',
+            builder: (context, child) {
+              return FTheme(
+                data: FThemes.zinc.light.touch,
+                child: child ?? const SizedBox(),
+              );
+            },
             routerConfig: AppRouter.router(authBloc),
           );
         },
