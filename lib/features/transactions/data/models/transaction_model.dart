@@ -6,47 +6,51 @@ part 'transaction_model.g.dart';
 @HiveType(typeId: 0)
 class TransactionModel extends HiveObject {
   @HiveField(0)
-  late String id;
+  final String id;
 
   @HiveField(1)
-  late double amount;
+  final double amount;
 
   @HiveField(2)
-  late int typeIndex;
+  final int typeIndex; // Aligned with the adapter expectation (0 = expense, 1 = income)
 
   @HiveField(3)
-  late int categoryIndex;
+  final String category;
 
   @HiveField(4)
-  late DateTime date;
+  final DateTime date;
 
   @HiveField(5)
-  late String note;
+  final String note;
 
   TransactionModel({
     required this.id,
     required this.amount,
     required this.typeIndex,
-    required this.categoryIndex,
+    required this.category,
     required this.date,
     required this.note,
   });
 
-  factory TransactionModel.fromEntity(Transaction txn) => TransactionModel(
-    id: txn.id,
-    amount: txn.amount,
-    typeIndex: txn.type.index,
-    categoryIndex: txn.category.index,
-    date: txn.date,
-    note: txn.note,
-  );
+  factory TransactionModel.fromEntity(Transaction transaction) {
+    return TransactionModel(
+      id: transaction.id,
+      amount: transaction.amount,
+      typeIndex: transaction.type == TransactionType.income ? 1 : 0,
+      category: transaction.category,
+      date: transaction.date,
+      note: transaction.note,
+    );
+  }
 
-  Transaction toEntity() => Transaction(
-    id: id,
-    amount: amount,
-    type: TransactionType.values[typeIndex],
-    category: TransactionCategory.values[categoryIndex],
-    date: date,
-    note: note,
-  );
+  Transaction toEntity() {
+    return Transaction(
+      id: id,
+      amount: amount,
+      type: typeIndex == 1 ? TransactionType.income : TransactionType.expense,
+      category: category,
+      date: date,
+      note: note,
+    );
+  }
 }

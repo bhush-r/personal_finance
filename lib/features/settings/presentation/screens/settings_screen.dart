@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
+
 import '../../../../core/constants/currency_constants.dart';
 import '../../../../core/theme/theme_provider.dart';
-import 'package:provider/provider.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../cubit/settings_cubit.dart';
 import '../cubit/settings_state.dart';
 
@@ -25,7 +26,6 @@ class _SettingsScreenState extends State<SettingsScreen>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-
     context.read<SettingsCubit>().loadPreferences();
     _animationController.forward();
   }
@@ -50,14 +50,12 @@ class _SettingsScreenState extends State<SettingsScreen>
           if (state is SettingsLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (state is SettingsLoaded) {
             return FadeTransition(
               opacity: _animationController,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // ✨ PROFILE SECTION
                   _buildSectionHeader("Profile"),
                   _buildCard(
                     child: Column(
@@ -79,8 +77,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // ✨ APPEARANCE SECTION
                   _buildSectionHeader("Appearance"),
                   _buildCard(
                     child: Column(
@@ -94,20 +90,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             context.read<ThemeProvider>().toggleDarkMode(v);
                           },
                         ),
-                        const Divider(),
-                        _buildTile(
-                          icon: Iconsax.global,
-                          title: "Language",
-                          subtitle: "English",
-                          trailing: Icon(Iconsax.arrow_right_3,
-                              color: Colors.grey.shade400, size: 18),
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // ✨ CURRENCY & FINANCE SECTION
                   _buildSectionHeader("Finance"),
                   _buildCard(
                     child: Column(
@@ -123,130 +109,25 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // ✨ NOTIFICATIONS & REMINDERS
-                  _buildSectionHeader("Notifications"),
-                  _buildCard(
-                    child: Column(
-                      children: [
-                        _buildToggleTile(
-                          icon: Iconsax.notification,
-                          title: "Push Notifications",
-                          value: state.notificationsEnabled,
-                          onChanged: (v) {
-                            context
-                                .read<SettingsCubit>()
-                                .toggleNotifications(v);
-                          },
-                        ),
-                        const Divider(),
-                        _buildToggleTile(
-                          icon: Iconsax.alarm,
-                          title: "Reminders",
-                          value: state.preferences.enableReminders,
-                          onChanged: (v) {
-                            context.read<SettingsCubit>().toggleReminders(v);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✨ SECURITY SECTION
-                  _buildSectionHeader("Security"),
-                  _buildCard(
-                    child: Column(
-                      children: [
-                        _buildToggleTile(
-                          icon: Iconsax.finger_cricle,
-                          title: "Biometric Lock",
-                          value: state.biometricEnabled,
-                          onChanged: (v) {
-                            context.read<SettingsCubit>().toggleBiometric(v);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✨ DATA SECTION
-                  _buildSectionHeader("Data"),
-                  _buildCard(
-                    child: Column(
-                      children: [
-                        _buildTile(
-                          icon: Iconsax.export,
-                          title: "Export Data",
-                          subtitle: state.preferences.lastDataExport != null
-                              ? "Last: ${state.preferences.lastDataExport!.toString().split(' ')[0]}"
-                              : "Never",
-                          trailing: Icon(Iconsax.arrow_right_3,
-                              color: Colors.grey.shade400, size: 18),
-                          onTap: () => _showExportDialog(state),
-                        ),
-                        const Divider(),
-                        _buildTile(
-                          icon: Iconsax.trash,
-                          title: "Clear Data",
-                          subtitle: "Permanently delete all data",
-                          trailing: Icon(Iconsax.arrow_right_3,
-                              color: Colors.grey.shade400, size: 18),
-                          onTap: () => _showClearDataDialog(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✨ ABOUT SECTION
-                  _buildSectionHeader("About"),
-                  _buildCard(
-                    child: Column(
-                      children: [
-                        _buildTile(
-                          icon: Iconsax.info_circle,
-                          title: "Version",
-                          subtitle: "1.0.0",
-                        ),
-                        const Divider(),
-                        _buildTile(
-                          icon: Iconsax.shield_tick,
-                          title: "Privacy Policy",
-                          trailing: Icon(Iconsax.arrow_right_3,
-                              color: Colors.grey.shade400, size: 18),
-                        ),
-                        const Divider(),
-                        _buildTile(
-                          icon: Iconsax.document_text,
-                          title: "Terms of Service",
-                          trailing: Icon(Iconsax.arrow_right_3,
-                              color: Colors.grey.shade400, size: 18),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✨ LOGOUT BUTTON
+                  const SizedBox(height: 30),
                   ElevatedButton.icon(
-                    onPressed: () => _showLogoutDialog(),
+                    onPressed: _showLogoutDialog,
                     icon: const Icon(Iconsax.logout),
                     label: const Text("Logout"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
-
                   const SizedBox(height: 30),
                 ],
               ),
             );
           }
-
           return const Center(
             child: Text("Error loading settings"),
           );
@@ -297,8 +178,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     return ListTile(
       leading: Icon(icon, color: Colors.blue),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle:
-      subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12))
+      subtitle: subtitle != null
+          ? Text(subtitle, style: const TextStyle(fontSize: 12))
           : null,
       trailing: trailing,
       onTap: onTap,
@@ -322,7 +203,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     final controller = TextEditingController(
       text: state.preferences.userName ?? '',
     );
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -354,7 +234,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     final controller = TextEditingController(
       text: state.preferences.userEmail ?? '',
     );
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -393,97 +272,28 @@ class _SettingsScreenState extends State<SettingsScreen>
             shrinkWrap: true,
             itemCount: CurrencyConstants.supportedCurrencies.length,
             itemBuilder: (context, index) {
-              final currency =
-              CurrencyConstants.supportedCurrencies[index];
-              final isSelected =
-                  state.preferences.currency == currency.code;
-
+              final currency = CurrencyConstants.supportedCurrencies[index];
+              final isSelected = state.preferences.currency == currency.code;
               return ListTile(
                 leading: Text(
                   currency.symbol,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 title: Text(currency.name),
-                subtitle: Text(currency.country, style: const TextStyle(fontSize: 11)),
+                subtitle: Text(currency.country,
+                    style: const TextStyle(fontSize: 11)),
                 trailing: isSelected
                     ? const Icon(Iconsax.tick_circle, color: Colors.green)
                     : null,
                 onTap: () {
-                  context
-                      .read<SettingsCubit>()
-                      .updateCurrency(currency.code);
+                  context.read<SettingsCubit>().updateCurrency(currency.code);
                   Navigator.pop(ctx);
                 },
               );
             },
           ),
         ),
-      ),
-    );
-  }
-
-  void _showExportDialog(SettingsLoaded state) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Export Data"),
-        content: const Text(
-          "Export all your financial data as CSV? This includes transactions, goals, and insights.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              // TODO: Implement data export functionality
-              context.read<SettingsCubit>().updateLastExportDate();
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Data exported successfully"),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Text("Export"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showClearDataDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Clear All Data?"),
-        content: const Text(
-          "This will permanently delete all your financial data. This action cannot be undone.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              // TODO: Implement data clearing
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("All data cleared"),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Text(
-              "Clear",
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -501,9 +311,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
           TextButton(
             onPressed: () {
-              context.read<SettingsCubit>().logout();
               Navigator.pop(ctx);
-              // TODO: Navigate to login screen
+              context.read<AuthBloc>().add(const AuthSignOutRequested());
             },
             child: const Text(
               "Logout",

@@ -31,14 +31,14 @@ class DefaultFirebaseOptions {
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
+              'you can reconfigure this by running the FlutterFire CLI again.',
         );
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
         );
     }
-  }
+  } // Added missing closing brace for getter
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyApNoepPEnZ5XjBvX66TkS2vHYOBSJsv6s',

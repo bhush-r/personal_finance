@@ -23,12 +23,14 @@ class FilterTransactions implements UseCase<List<Transaction>, FilterTransaction
 
 class FilterTransactionsParams extends Equatable {
   final TransactionType? type;
+  final String? category;
   final String? searchQuery;
   final DateTime? startDate;
   final DateTime? endDate;
 
   const FilterTransactionsParams({
     this.type,
+    this.category,
     this.searchQuery,
     this.startDate,
     this.endDate,

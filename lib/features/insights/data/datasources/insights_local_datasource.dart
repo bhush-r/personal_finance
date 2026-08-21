@@ -17,51 +17,43 @@ class InsightsLocalDataSourceImpl implements InsightsLocalDataSource {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // Calculate weekly data
     final thisWeekStart = today.subtract(Duration(days: today.weekday - 1));
     final lastWeekStart = thisWeekStart.subtract(const Duration(days: 7));
     final lastWeekEnd = thisWeekStart;
 
-    // Initialize tracking variables
     final categoryBreakdown = <String, double>{};
     double thisWeekExpense = 0;
     double lastWeekExpense = 0;
     final monthlyTrend = <String, double>{};
     int expenseCount = 0;
 
-    // Process each transaction
     for (final txn in transactions) {
       final entity = txn.toEntity();
 
-      // Only process expenses
+      // Only evaluate expense entries
       if (entity.type.name != 'expense') continue;
 
-      final catName = entity.category.name.toLowerCase();
+      final catName = entity.category.trim();
       final amount = entity.amount;
 
-      // Update category breakdown
       categoryBreakdown[catName] = (categoryBreakdown[catName] ?? 0) + amount;
 
-      // This week expenses
       if (txn.date.isAfter(thisWeekStart.subtract(const Duration(seconds: 1)))) {
         thisWeekExpense += amount;
       }
 
-      // Last week expenses
       if (txn.date.isAfter(lastWeekStart.subtract(const Duration(seconds: 1))) &&
           txn.date.isBefore(lastWeekEnd.add(const Duration(days: 1)))) {
         lastWeekExpense += amount;
       }
 
-      // Monthly trend
       final monthKey = '${txn.date.year}-${txn.date.month.toString().padLeft(2, '0')}';
       monthlyTrend[monthKey] = (monthlyTrend[monthKey] ?? 0) + amount;
 
       expenseCount++;
     }
 
-    // Find top category
-    String topCategory = 'other';
+    String topCategory = 'Other';
     double topCategoryAmount = 0;
     categoryBreakdown.forEach((key, value) {
       if (value > topCategoryAmount) {
@@ -70,10 +62,7 @@ class InsightsLocalDataSourceImpl implements InsightsLocalDataSource {
       }
     });
 
-
-    final averageDailySpend = expenseCount > 0
-        ? thisWeekExpense / 7.0
-        : 0.0;
+    final averageDailySpend = expenseCount > 0 ? thisWeekExpense / 7.0 : 0.0;
 
     return Insight(
       topCategory: topCategory,

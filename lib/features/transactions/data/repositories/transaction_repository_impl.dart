@@ -26,32 +26,17 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<Either<Failure, List<Transaction>>> getTransactions() async {
     try {
-      // Always try to get from local first for speed.
-      final localTransactions =
-      await localDataSource.getTransactions();
+      final localTransactions = await localDataSource.getTransactions();
 
-      // Try to fetch remote data when internet is available.
       if (await networkInfo.isConnected) {
         try {
           await remoteDataSource.getTransactions();
-
-          // In a real application, remote and local data
-          // can be merged using timestamps or IDs.
-          //
-          // For now, local data remains the source returned
-          // to the UI.
-        } catch (_) {
-          // If remote fails, continue using local data.
-        }
+        } catch (_) {}
       }
 
       return Right(localTransactions);
     } catch (e) {
-      return Left(
-        CacheFailure(
-          message: e.toString(),
-        ),
-      );
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
@@ -60,33 +45,21 @@ class TransactionRepositoryImpl implements TransactionRepository {
       Transaction transaction,
       ) async {
     try {
-      // 1. Save locally.
-      final result =
-      await localDataSource.addTransaction(transaction);
+      final result = await localDataSource.addTransaction(transaction);
 
-      // 2. Log analytics.
       await analytics.logTransaction(
         transaction.id,
         transaction.amount,
-        transaction.category.name,
+        transaction.category,
       );
 
-      // 3. Upload to Firebase when online.
       if (await networkInfo.isConnected) {
-        await remoteDataSource.uploadTransaction(
-          transaction,
-        );
-      } else {
-        // Offline sync can be handled by a sync queue later.
+        await remoteDataSource.uploadTransaction(transaction);
       }
 
       return Right(result);
     } catch (e) {
-      return Left(
-        CacheFailure(
-          message: e.toString(),
-        ),
-      );
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
@@ -95,47 +68,30 @@ class TransactionRepositoryImpl implements TransactionRepository {
       Transaction transaction,
       ) async {
     try {
-      // 1. Update local database.
-      final result =
-      await localDataSource.updateTransaction(transaction);
+      final result = await localDataSource.updateTransaction(transaction);
 
-      // 2. Upload updated transaction when online.
       if (await networkInfo.isConnected) {
-        await remoteDataSource.uploadTransaction(
-          transaction,
-        );
+        await remoteDataSource.uploadTransaction(transaction);
       }
 
       return Right(result);
     } catch (e) {
-      return Left(
-        CacheFailure(
-          message: e.toString(),
-        ),
-      );
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, void>> deleteTransaction(
-      String id,
-      ) async {
+  Future<Either<Failure, void>> deleteTransaction(String id) async {
     try {
-      // 1. Delete locally.
       await localDataSource.deleteTransaction(id);
 
-      // 2. Delete from Firebase when online.
       if (await networkInfo.isConnected) {
         await remoteDataSource.deleteTransaction(id);
       }
 
       return const Right(null);
     } catch (e) {
-      return Left(
-        CacheFailure(
-          message: e.toString(),
-        ),
-      );
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
@@ -147,8 +103,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
     DateTime? endDate,
   }) async {
     try {
-      final transactions =
-      await localDataSource.filterTransactions(
+      final transactions = await localDataSource.filterTransactions(
         type: type,
         searchQuery: searchQuery,
         startDate: startDate,
@@ -157,11 +112,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
       return Right(transactions);
     } catch (e) {
-      return Left(
-        CacheFailure(
-          message: e.toString(),
-        ),
-      );
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 }

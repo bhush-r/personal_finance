@@ -6,11 +6,8 @@ import '../models/transaction_model.dart';
 
 abstract class TransactionRemoteDataSource {
   Future<void> syncTransactions(List<Transaction> transactions);
-
   Future<List<Transaction>> getTransactions();
-
   Future<void> uploadTransaction(Transaction transaction);
-
   Future<void> deleteTransaction(String id);
 }
 
@@ -61,7 +58,6 @@ class TransactionRemoteDataSourceImpl
 
     return snapshot.docs.map((doc) {
       final data = doc.data();
-
       return transactionModelFromFirestore(data).toEntity();
     }).toList();
   }
@@ -85,11 +81,6 @@ class TransactionRemoteDataSourceImpl
   }
 }
 
-/// Convert Firestore data into TransactionModel.
-///
-/// This is intentionally a top-level function instead of
-/// TransactionModel.fromFirestore() because TransactionModel
-/// currently does not define that factory.
 TransactionModel transactionModelFromFirestore(
     Map<String, dynamic> map,
     ) {
@@ -97,20 +88,19 @@ TransactionModel transactionModelFromFirestore(
     id: map['id'] as String,
     amount: (map['amount'] as num).toDouble(),
     typeIndex: (map['typeIndex'] as num).toInt(),
-    categoryIndex: (map['categoryIndex'] as num).toInt(),
+    category: map['category'] as String,
     date: DateTime.parse(map['date'] as String),
     note: map['note'] as String? ?? '',
   );
 }
 
-/// Convert TransactionModel into Firestore data.
 extension TransactionModelFirestore on TransactionModel {
   Map<String, dynamic> toFirestore() {
     return {
       'id': id,
       'amount': amount,
       'typeIndex': typeIndex,
-      'categoryIndex': categoryIndex,
+      'category': category,
       'date': date.toIso8601String(),
       'note': note,
     };

@@ -1,5 +1,4 @@
-import 'package:equatable/equatable.dart';
-import '../../domain/entities/transaction.dart';
+part of 'transaction_bloc.dart';
 
 abstract class TransactionState extends Equatable {
   const TransactionState();
@@ -8,24 +7,14 @@ abstract class TransactionState extends Equatable {
   List<Object?> get props => [];
 }
 
-class TransactionInitial extends TransactionState {
-  const TransactionInitial();
+class TransactionInitial extends TransactionState {}
 
-  @override
-  List<Object?> get props => [];
-}
-
-class TransactionLoading extends TransactionState {
-  const TransactionLoading();
-
-  @override
-  List<Object?> get props => [];
-}
+class TransactionLoading extends TransactionState {}
 
 class TransactionLoaded extends TransactionState {
   final List<Transaction> transactions;
 
-  const TransactionLoaded({required this.transactions});
+  const TransactionLoaded(this.transactions);
 
   @override
   List<Object?> get props => [transactions];
@@ -34,16 +23,7 @@ class TransactionLoaded extends TransactionState {
 class TransactionError extends TransactionState {
   final String message;
 
-  const TransactionError({required this.message});
-
-  @override
-  List<Object?> get props => [message];
-}
-
-class TransactionOperationSuccess extends TransactionState {
-  final String message;
-
-  const TransactionOperationSuccess({required this.message});
+  const TransactionError(this.message);
 
   @override
   List<Object?> get props => [message];

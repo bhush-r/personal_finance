@@ -7,11 +7,9 @@ import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/income_expense_row.dart';
-import '../widgets/spending_chart.dart';
 import '../widgets/recent_transactions_list.dart';
 import '../widgets/savings_progress_card.dart';
 import '../widgets/weekly_trend_card.dart';
-import '../widgets/empty_dashboard_state.dart';
 import '../../../../shared/widgets/loading_shimmer_skeleton.dart';
 import '../../../../shared/widgets/fade_in_animation.dart';
 import '../../../../shared/widgets/staggered_animation.dart';
@@ -28,10 +26,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Dashboard load karne ke liye event trigger karein
+    // Trigger event to load dashboard summary
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<DashboardBloc>().add(const LoadDashboard());
+        context.read<DashboardBloc>().add(const LoadDashboardSummary());
       }
     });
   }
@@ -51,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (state is DashboardLoaded) {
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<DashboardBloc>().add(const RefreshDashboard());
+                context.read<DashboardBloc>().add(const LoadDashboardSummary());
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -248,7 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(message),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => context.read<DashboardBloc>().add(const LoadDashboard()),
+            onPressed: () => context.read<DashboardBloc>().add(const LoadDashboardSummary()),
             child: const Text('Retry'),
           ),
         ],

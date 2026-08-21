@@ -43,6 +43,9 @@ class RecentTransactionsList extends StatelessWidget {
         final txn = transactions[index];
         final isIncome = txn.type.name == 'income';
         final color = isIncome ? AppColors.income : AppColors.expense;
+        final categoryDisplay = txn.category.isNotEmpty
+            ? txn.category[0].toUpperCase() + txn.category.substring(1)
+            : 'Uncategorized';
 
         return ListTile(
           contentPadding: EdgeInsets.zero,
@@ -60,10 +63,7 @@ class RecentTransactionsList extends StatelessWidget {
             ),
           ),
           title: Text(
-            txn.category.name.replaceFirst(
-              txn.category.name[0],
-              txn.category.name[0].toUpperCase(),
-            ),
+            categoryDisplay,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),

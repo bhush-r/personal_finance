@@ -4,11 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/entities/transaction.dart';
 import '../bloc/transaction_bloc.dart';
-import '../bloc/transaction_event.dart';
-import '../bloc/transaction_state.dart';
 
 import '../widgets/empty_transaction_state.dart';
 import '../widgets/transaction_filter_bar.dart'
@@ -16,10 +15,8 @@ import '../widgets/transaction_filter_bar.dart'
 
 import '../widgets/transaction_tile.dart';
 
-import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_shimmer_skeleton.dart';
-import '../../../../shared/dialogs/delete_confirmation_dialog.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -41,7 +38,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   @override
   void initState() {
     super.initState();
-    context.read<TransactionBloc>().add(const LoadTransactions());
+    context.read<TransactionBloc>().add(const LoadTransactionsEvent());
 
     _fabController = AnimationController(
       vsync: this,
@@ -57,7 +54,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   }
 
   void _handleScroll() {
-    // Hide FAB when scrolling down, show when scrolling up
     if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
       if (_showFab) {
         setState(() => _showFab = false);
@@ -93,14 +89,13 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-
-      // Animated FAB with scale transition
       floatingActionButton: ScaleTransition(
         scale: CurvedAnimation(
           parent: _fabController,
           curve: Curves.easeInOutBack,
         ),
         child: FloatingActionButton.extended(
+          heroTag: 'transactions_fab',
           backgroundColor: Colors.black,
           elevation: 4,
           onPressed: () {
@@ -111,7 +106,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           label: const Text('Add'),
         ),
       ),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -147,8 +141,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
               "Transactions",
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
-
-            /// Animated Sort Menu
             Material(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -171,9 +163,9 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                   _buildMenuItem(Iconsax.arrow_3, 'High', 'amount_desc'),
                   _buildMenuItem(Iconsax.arrow_down_1, 'Low', 'amount_asc'),
                 ],
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: const Icon(Iconsax.sort, size: 22),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Iconsax.sort, size: 22),
                 ),
               ),
             ),
@@ -251,7 +243,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
             children: [
               _buildSummary(txns),
               Expanded(
-                child: _buildTransactionList(txns),
+                child: _buildGroupedTransactionList(txns),
               ),
             ],
           );
@@ -266,40 +258,107 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
-  Widget _buildTransactionList(List<Transaction> txns) {
+  /// Groups transactions by day with calculated daily totals
+  Widget _buildGroupedTransactionList(List<Transaction> txns) {
+    // 1. Group transactions by formatted date string
+    final Map<DateTime, List<Transaction>> grouped = {};
+
+    for (var txn in txns) {
+      final dateOnly = DateTime(txn.date.year, txn.date.month, txn.date.day);
+      if (!grouped.containsKey(dateOnly)) {
+        grouped[dateOnly] = [];
+      }
+      grouped[dateOnly]!.add(txn);
+    }
+
+    // 2. Sort date keys descending (newest dates first)
+    final sortedDates = grouped.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
       physics: const BouncingScrollPhysics(),
-      itemCount: txns.length,
-      itemBuilder: (_, i) {
-        final txn = txns[i];
+      itemCount: sortedDates.length,
+      itemBuilder: (_, index) {
+        final date = sortedDates[index];
+        final dayTxns = grouped[date]!;
 
-        // Staggered animation
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: Duration(milliseconds: 300 + (i * 50)),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, 30 * (1 - value)),
-                child: child,
+        // Calculate Daily Balance Net (Income - Expense)
+        double dayIncome = 0;
+        double dayExpense = 0;
+
+        for (var t in dayTxns) {
+          if (t.type == TransactionType.income) {
+            dayIncome += t.amount;
+          } else {
+            dayExpense += t.amount;
+          }
+        }
+
+        final netDailyTotal = dayIncome - dayExpense;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Daily Group Header with aggregated total
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _getFriendlyDateHeader(date),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Text(
+                    '${netDailyTotal >= 0 ? '+' : ''}${CurrencyFormatter.format(netDailyTotal)}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: netDailyTotal >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
-          child: TransactionTile(
-            transaction: txn,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              context.push('/transactions/add', extra: txn);
-            },
-            onDelete: () => _showDeleteDialog(txn),
-          ),
+            ),
+
+            // Daily Item List
+            ...dayTxns.map((txn) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: TransactionTile(
+                transaction: txn,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  context.push('/transactions/add', extra: txn);
+                },
+                onDelete: () => _showDeleteDialog(txn),
+              ),
+            )),
+          ],
         );
       },
     );
+  }
+
+  String _getFriendlyDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (date == today) {
+      return 'Today';
+    } else if (date == yesterday) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('dd MMM yyyy').format(date);
+    }
   }
 
   void _showDeleteDialog(Transaction txn) {
@@ -312,9 +371,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-            },
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -328,23 +385,14 @@ class _TransactionsScreenState extends State<TransactionsScreen>
             onPressed: () {
               Navigator.pop(ctx);
               HapticFeedback.heavyImpact();
-              context.read<TransactionBloc>().add(
-                DeleteTransactionEvent(id: txn.id),
-              );
+              context.read<TransactionBloc>().add(DeleteTransactionEvent(txn.id));
 
-              // Show snackbar feedback
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: const Text('Transaction deleted'),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () {
-                      // Implement undo logic
-                    },
                   ),
                 ),
               );
@@ -357,21 +405,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   }
 
   Widget _buildEmptyState() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.scale(
-            scale: 0.8 + (0.2 * value),
-            child: child,
-          ),
-        );
-      },
-      child: const EmptyTransactionState(),
-    );
+    return const EmptyTransactionState();
   }
 
   Widget _buildErrorState(String message) {
@@ -397,7 +431,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              context.read<TransactionBloc>().add(const LoadTransactions());
+              context.read<TransactionBloc>().add(const LoadTransactionsEvent());
             },
             icon: const Icon(Iconsax.refresh),
             label: const Text('Retry'),
@@ -412,15 +446,15 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
-  /// Animated Summary with number transitions
   Widget _buildSummary(List<Transaction> txns) {
     double income = 0;
     double expense = 0;
 
+    // Explicit Type Comparison: Income vs Expense calculation fix
     for (var t in txns) {
       if (t.type == TransactionType.income) {
         income += t.amount;
-      } else {
+      } else if (t.type == TransactionType.expense) {
         expense += t.amount;
       }
     }
@@ -449,7 +483,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -474,7 +508,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             fontSize: 12,
           ),
         ),

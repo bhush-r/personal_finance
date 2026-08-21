@@ -2,21 +2,47 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:iconsax/iconsax.dart';
+
 import '../bloc/auth_bloc.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onLoginPressed() {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text.trim();
+
+    if (email.isNotEmpty && password.isNotEmpty) {
+      context.read<AuthBloc>().add(
+        AuthLoginRequested(email: email, password: password),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
-            context.go('/dashboard');
+            context.go('/');
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
@@ -86,7 +112,8 @@ class LoginScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: theme.colorScheme.primary.withOpacity(0.2),
+                                    color: theme.colorScheme.primary
+                                        .withValues(alpha: 0.2),
                                     blurRadius: 20,
                                     offset: const Offset(0, 10),
                                   )
@@ -98,13 +125,16 @@ class LoginScreen extends StatelessWidget {
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
                                       border: Border(
-                                        bottom: BorderSide(color: Colors.grey[200]!),
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
                                       ),
                                     ),
-                                    child: const TextField(
-                                      decoration: InputDecoration(
+                                    child: TextField(
+                                      controller: _emailCtrl,
+                                      decoration: const InputDecoration(
                                         hintText: "Email or Phone number",
-                                        hintStyle: TextStyle(color: Colors.grey),
+                                        hintStyle:
+                                        TextStyle(color: Colors.grey),
                                         border: InputBorder.none,
                                       ),
                                     ),
@@ -113,14 +143,17 @@ class LoginScreen extends StatelessWidget {
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
                                       border: Border(
-                                        bottom: BorderSide(color: Colors.grey[200]!),
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
                                       ),
                                     ),
-                                    child: const TextField(
+                                    child: TextField(
+                                      controller: _passwordCtrl,
                                       obscureText: true,
-                                      decoration: InputDecoration(
+                                      decoration: const InputDecoration(
                                         hintText: "Password",
-                                        hintStyle: TextStyle(color: Colors.grey),
+                                        hintStyle:
+                                        TextStyle(color: Colors.grey),
                                         border: InputBorder.none,
                                       ),
                                     ),
@@ -141,7 +174,7 @@ class LoginScreen extends StatelessWidget {
                           FadeInUp(
                             duration: const Duration(milliseconds: 1600),
                             child: MaterialButton(
-                              onPressed: () {},
+                              onPressed: _onLoginPressed,
                               height: 50,
                               color: theme.colorScheme.primary,
                               shape: RoundedRectangleBorder(
@@ -163,7 +196,9 @@ class LoginScreen extends StatelessWidget {
                             duration: const Duration(milliseconds: 1700),
                             child: OutlinedButton.icon(
                               onPressed: () {
-                                context.read<AuthBloc>().add(AuthGoogleSignInRequested());
+                                context.read<AuthBloc>().add(
+                                  const AuthGoogleSignInRequested(),
+                                );
                               },
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 50),

@@ -22,10 +22,10 @@ class GoalModelAdapter extends TypeAdapter<GoalModel> {
       typeIndex: fields[2] as int,
       targetAmount: fields[3] as double,
       currentAmount: fields[4] as double,
-      createdDate: fields[5] as DateTime,  // ✅ Non-nullable DateTime
+      createdDate: fields[5] as DateTime,
       deadline: fields[6] as DateTime?,
       description: fields[7] as String?,
-      isCompleted: fields[8] as bool,
+      isCompleted: fields[8] as bool? ?? false,
       noSpendDays: fields[9] as int?,
     );
   }

@@ -2,16 +2,11 @@ import 'package:equatable/equatable.dart';
 
 enum TransactionType { income, expense }
 
-enum TransactionCategory {
-  food, transport, shopping, health, bills,
-  salary, savings, entertainment, other
-}
-
 class Transaction extends Equatable {
   final String id;
   final double amount;
   final TransactionType type;
-  final TransactionCategory category;
+  final String category; // Updated to dynamic String category
   final DateTime date;
   final String note;
 
@@ -28,7 +23,7 @@ class Transaction extends Equatable {
     String? id,
     double? amount,
     TransactionType? type,
-    TransactionCategory? category,
+    String? category,
     DateTime? date,
     String? note,
   }) {

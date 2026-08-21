@@ -4,7 +4,7 @@ class SummaryModel {
   final double balance;
   final double totalIncome;
   final double totalExpense;
-  final Map<TransactionCategory, double> categoryBreakdown;
+  final Map<String, double> categoryBreakdown;
 
   const SummaryModel({
     required this.balance,

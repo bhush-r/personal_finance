@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/transaction.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class CategoryChip extends StatelessWidget {
-  final TransactionCategory category;
+  final String category;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -17,8 +16,10 @@ class CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color =
-        AppColors.categoryColors[category.name] ?? AppColors.primary;
-    final label = category.name[0].toUpperCase() + category.name.substring(1);
+        AppColors.categoryColors[category.toLowerCase()] ?? AppColors.primary;
+    final label = category.isNotEmpty
+        ? category[0].toUpperCase() + category.substring(1)
+        : 'Other';
 
     return GestureDetector(
       onTap: onTap,

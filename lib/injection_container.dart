@@ -6,7 +6,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
 
 import 'core/analytics/analytics_service.dart';
 import 'core/network/network_info.dart';
@@ -21,10 +20,10 @@ import 'features/transactions/data/repositories/transaction_repository_impl.dart
 import 'features/transactions/domain/repositories/transaction_repository.dart';
 import 'features/transactions/domain/usecases/add_transaction.dart';
 import 'features/transactions/domain/usecases/delete_transaction.dart';
+import 'features/transactions/domain/usecases/export_transactions.dart';
+import 'features/transactions/domain/usecases/filter_transactions.dart';
 import 'features/transactions/domain/usecases/get_transactions.dart';
 import 'features/transactions/domain/usecases/update_transaction.dart';
-import 'features/transactions/domain/usecases/filter_transactions.dart';
-import 'features/transactions/domain/usecases/export_transactions.dart';
 import 'features/transactions/presentation/bloc/transaction_bloc.dart';
 
 import 'features/dashboard/presentation/bloc/dashboard_bloc.dart';
@@ -60,15 +59,11 @@ import 'features/settings/presentation/cubit/settings_cubit.dart';
 
 import 'shared/services/notification_service.dart';
 import 'shared/services/biometric_service.dart';
-import 'core/constants/currency_constants.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // ══════════════════════════════════════════════════════════════════════════
-  // 1. CORE & EXTERNAL (Synchronous registrations first)
-  // ══════════════════════════════════════════════════════════════════════════
-
+  // 1. Core & External Services
   sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
@@ -76,33 +71,25 @@ Future<void> init() async {
   sl.registerLazySingleton<Connectivity>(() => Connectivity());
   sl.registerLazySingleton<InternetConnectionChecker>(() => InternetConnectionChecker());
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl(), sl()));
-  
-  sl.registerSingleton<CurrencyConstants>(CurrencyConstants());
+
   sl.registerSingleton<NotificationService>(NotificationService());
   sl.registerSingleton<BiometricService>(BiometricService());
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // 2. AUTH FEATURE (Register early to ensure it's available for redirects)
-  // ══════════════════════════════════════════════════════════════════════════
-
+  // Auth Dependencies
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
+        () => AuthRepositoryImpl(
       firebaseAuth: sl(),
       googleSignIn: sl(),
       firestore: sl(),
     ),
   );
 
+// Register AuthBloc Factory
   sl.registerFactory<AuthBloc>(
-    () => AuthBloc(
-      authRepository: sl(),
-    ),
+        () => AuthBloc(authRepository: sl()),
   );
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // 3. ASYNC INITIALIZATIONS (Required dependencies for app startup)
-  // ══════════════════════════════════════════════════════════════════════════
-
+  // 3. Storage & Hive
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 
@@ -115,28 +102,15 @@ Future<void> init() async {
   sl.registerLazySingleton<Box<TransactionModel>>(() => transactionBox);
   sl.registerLazySingleton<Box<GoalModel>>(() => goalsBox);
 
-  // Initialize services but don't let them crash the whole DI process
-  try {
-    await sl<NotificationService>().initialize();
-  } catch (e) {
-    debugPrint('DI: NotificationService initialization failed: $e');
-  }
-
-  try {
-    await sl<BiometricService>().initialize();
-  } catch (e) {
-    debugPrint('DI: BiometricService initialization failed: $e');
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 4. OTHER FEATURES (Registrations that might depend on Prefs/Boxes)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  // Transactions
-  sl.registerLazySingleton<TransactionLocalDataSource>(() => TransactionLocalDataSourceImpl(box: sl()));
-  sl.registerLazySingleton<TransactionRemoteDataSource>(() => TransactionRemoteDataSourceImpl(firestoreDb: sl(), auth: sl()));
+  // 4. Transactions Feature
+  sl.registerLazySingleton<TransactionLocalDataSource>(
+        () => TransactionLocalDataSourceImpl(box: sl()),
+  );
+  sl.registerLazySingleton<TransactionRemoteDataSource>(
+        () => TransactionRemoteDataSourceImpl(firestoreDb: sl(), auth: sl()),
+  );
   sl.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(
+        () => TransactionRepositoryImpl(
       localDataSource: sl(),
       remoteDataSource: sl(),
       networkInfo: sl(),
@@ -149,41 +123,86 @@ Future<void> init() async {
   sl.registerLazySingleton<DeleteTransaction>(() => DeleteTransaction(sl()));
   sl.registerLazySingleton<FilterTransactions>(() => FilterTransactions(sl()));
   sl.registerLazySingleton<ExportTransactions>(() => ExportTransactions(sl()));
-  sl.registerFactory<TransactionBloc>(() => TransactionBloc(
-    getTransactions: sl(),
-    addTransaction: sl(),
-    updateTransaction: sl(),
-    deleteTransaction: sl(),
-    filterTransactions: sl(),
-  ));
 
-  // Dashboard
-  sl.registerLazySingleton<DashboardLocalDataSource>(() => DashboardLocalDataSourceImpl(box: sl()));
-  sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(localDataSource: sl()));
+  sl.registerLazySingleton<TransactionBloc>(
+        () => TransactionBloc(
+      getTransactions: sl(),
+      addTransaction: sl(),
+      updateTransaction: sl(),
+      deleteTransaction: sl(),
+      filterTransactions: sl(),
+    ),
+  );
+
+  // 5. Dashboard Feature
+  sl.registerLazySingleton<DashboardLocalDataSource>(
+        () => DashboardLocalDataSourceImpl(box: sl()),
+  );
+  sl.registerLazySingleton<DashboardRepository>(
+        () => DashboardRepositoryImpl(localDataSource: sl()),
+  );
   sl.registerLazySingleton<GetFinancialSummary>(() => GetFinancialSummary(sl()));
-  sl.registerFactory<DashboardBloc>(() => DashboardBloc(getFinancialSummary: sl(), getTransactions: sl()));
+  sl.registerFactory<DashboardBloc>(
+        () => DashboardBloc(
+      getFinancialSummary: sl(),
+      getTransactions: sl(),
+      transactionBloc: sl(),
+    ),
+  );
 
-  // Goals
-  sl.registerLazySingleton<GoalLocalDataSource>(() => GoalLocalDataSourceImpl(box: sl<Box<GoalModel>>()));
-  sl.registerLazySingleton<GoalRemoteDataSource>(() => GoalRemoteDataSourceImpl(firestore: sl(), auth: sl()));
-  sl.registerLazySingleton<GoalRepository>(() => GoalRepositoryImpl(localDataSource: sl(), remoteDataSource: sl(), networkInfo: sl()));
+  // 6. Goals Feature
+  sl.registerLazySingleton<GoalLocalDataSource>(
+        () => GoalLocalDataSourceImpl(box: sl()),
+  );
+  sl.registerLazySingleton<GoalRemoteDataSource>(
+        () => GoalRemoteDataSourceImpl(firestore: sl(), auth: sl()),
+  );
+  sl.registerLazySingleton<GoalRepository>(
+        () => GoalRepositoryImpl(
+      localDataSource: sl(),
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
   sl.registerLazySingleton<GetGoals>(() => GetGoals(sl()));
   sl.registerLazySingleton<AddGoal>(() => AddGoal(sl()));
   sl.registerLazySingleton<UpdateGoal>(() => UpdateGoal(sl()));
   sl.registerLazySingleton<DeleteGoal>(() => DeleteGoal(sl()));
-  sl.registerFactory<GoalCubit>(() => GoalCubit(getGoals: sl(), addGoal: sl(), updateGoal: sl(), deleteGoal: sl()));
+
+  sl.registerFactory<GoalCubit>(
+        () => GoalCubit(
+      getGoals: sl(),
+      addGoal: sl(),
+      updateGoal: sl(),
+      deleteGoal: sl(),
+    ),
+  );
   sl.registerFactory<SavingStreakCubit>(() => SavingStreakCubit());
 
-  // Insights
-  sl.registerLazySingleton<InsightsLocalDataSource>(() => InsightsLocalDataSourceImpl(box: sl()));
-  sl.registerLazySingleton<InsightsRepository>(() => InsightsRepositoryImpl(localDataSource: sl()));
+  // 7. Insights Feature
+  sl.registerLazySingleton<InsightsLocalDataSource>(
+        () => InsightsLocalDataSourceImpl(box: sl()),
+  );
+  sl.registerLazySingleton<InsightsRepository>(
+        () => InsightsRepositoryImpl(localDataSource: sl()),
+  );
   sl.registerLazySingleton<GetInsights>(() => GetInsights(sl()));
   sl.registerFactory<InsightsCubit>(() => InsightsCubit(getInsights: sl()));
 
-  // Settings
-  sl.registerLazySingleton<SettingsLocalDataSource>(() => SettingsLocalDataSourceImpl(prefs: sl()));
-  sl.registerLazySingleton<SettingsRepository>(() => SettingsRepositoryImpl(localDataSource: sl()));
+  // 8. Settings Feature
+  sl.registerLazySingleton<SettingsLocalDataSource>(
+        () => SettingsLocalDataSourceImpl(prefs: sl()),
+  );
+  sl.registerLazySingleton<SettingsRepository>(
+        () => SettingsRepositoryImpl(localDataSource: sl()),
+  );
   sl.registerLazySingleton<GetPreferences>(() => GetPreferences(sl()));
   sl.registerLazySingleton<SavePreferences>(() => SavePreferences(sl()));
-  sl.registerFactory<SettingsCubit>(() => SettingsCubit(getPreferences: sl(), savePreferences: sl(), authRepository: sl()));
+  sl.registerFactory<SettingsCubit>(
+        () => SettingsCubit(
+      getPreferences: sl(),
+      savePreferences: sl(),
+      authRepository: sl(),
+    ),
+  );
 }
