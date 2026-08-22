@@ -15,28 +15,30 @@ class AppBottomNav extends StatelessWidget {
     return Scaffold(
       body: shell,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-            )
-          ],
+        decoration: const BoxDecoration(
+          color: Color(0xFF090D14),
+          border: Border(
+            top: BorderSide(color: Color(0xFF1A2331), width: 1),
+          ),
         ),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: shell.currentIndex,
-          onTap: (index) => _onNavTap(index),
-          selectedItemColor: Colors.black,
-          unselectedItemColor: Colors.grey,
+          onTap: _onNavTap,
+          backgroundColor: const Color(0xFF090D14),
+          selectedItemColor: const Color(0xFF4D8DFF),
+          unselectedItemColor: const Color(0xFF8A94A6),
+          elevation: 0,
+          showSelectedLabels: true,
           showUnselectedLabels: true,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Iconsax.home), label: 'Dashboard'),
-            BottomNavigationBarItem(icon: Icon(Iconsax.receipt), label: 'Transactions'),
-            BottomNavigationBarItem(icon: Icon(Iconsax.flag), label: 'Goals'),
-            BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: 'Insights'),
-            BottomNavigationBarItem(icon: Icon(Iconsax.setting), label: 'Settings'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.receipt), label: 'Activity'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.wallet_2), label: 'Budget'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: 'Statistics'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.setting), label: 'Profile'),
           ],
         ),
       ),
