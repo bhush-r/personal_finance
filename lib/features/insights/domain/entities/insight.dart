@@ -8,6 +8,7 @@ class Insight extends Equatable {
   final Map<String, double> categoryBreakdown;
   final Map<String, double> monthlyTrend;
   final double averageDailySpend;
+  final Map<int, double> dailySpending; // 1: Mon, 7: Sun
 
   const Insight({
     required this.topCategory,
@@ -17,20 +18,21 @@ class Insight extends Equatable {
     required this.categoryBreakdown,
     required this.monthlyTrend,
     required this.averageDailySpend,
+    required this.dailySpending,
   });
 
   /// Calculate weekly change percentage
   double getWeeklyChange() {
-    if (lastWeekExpense == 0) return 0;
-    return ((thisWeekExpense - lastWeekExpense) / lastWeekExpense) * 100;
+    if (lastWeekExpense == 0.0) return 0.0;
+    return ((thisWeekExpense - lastWeekExpense) / lastWeekExpense) * 100.0;
   }
 
   /// Check if spending increased
-  bool isSpendingIncreased() => getWeeklyChange() > 0;
+  bool isSpendingIncreased() => getWeeklyChange() > 0.0;
 
   /// Get total spent across all categories
   double getTotalSpent() =>
-      categoryBreakdown.values.fold(0, (sum, val) => sum + val);
+      categoryBreakdown.values.fold(0.0, (sum, val) => sum + val);
 
   /// Get top 3 categories
   List<MapEntry<String, double>> getTopThreeCategories() {
@@ -48,5 +50,6 @@ class Insight extends Equatable {
     categoryBreakdown,
     monthlyTrend,
     averageDailySpend,
+    dailySpending,
   ];
 }

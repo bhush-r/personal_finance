@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../domain/entities/transaction.dart';
-import '../bloc/transaction_bloc.dart';
-import '../bloc/transaction_event.dart';
+import '../../../../injection_container.dart';
+import '../viewmodels/transactions_view_model.dart';
 
 import '../../../../shared/widgets/enhanced_text_field.dart';
 import '../../../../shared/widgets/category_selector.dart';
@@ -26,7 +25,7 @@ class AddEditTransactionScreen extends StatefulWidget {
 class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
     with TickerProviderStateMixin {
   late TransactionType _type;
-  late TransactionCategory _category;
+  late String _category;
   late TextEditingController _amountCtrl;
   late TextEditingController _noteCtrl;
   late DateTime _date;
@@ -46,7 +45,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
     super.initState();
 
     _type = widget.transaction?.type ?? TransactionType.expense;
-    _category = widget.transaction?.category ?? TransactionCategory.food;
+    _category = widget.transaction?.category ?? 'Food';
     _amountCtrl = TextEditingController(
         text: widget.transaction?.amount.toString() ?? '');
     _noteCtrl = TextEditingController(text: widget.transaction?.note ?? '');
@@ -115,14 +114,15 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
       note: _noteCtrl.text,
     );
 
-    if (isEditing) {
-      context.read<TransactionBloc>().add(
-        UpdateTransactionEvent(transaction: txn),
-      );
-    } else {
-      context.read<TransactionBloc>().add(
-        AddTransactionEvent(transaction: txn),
-      );
+    final error = await sl<TransactionsViewModel>().save(
+      txn,
+      isEditing: isEditing,
+    );
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _isSubmitting = false);
+      _showErrorSnackBar(error);
+      return;
     }
 
     // Play success animation
@@ -159,6 +159,20 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
         margin: const EdgeInsets.all(16),
       ),
     );
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _date) {
+      setState(() {
+        _date = picked;
+      });
+    }
   }
 
   @override
@@ -203,7 +217,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
             ),
           ),
 
-          // ✨ Success overlay
+          // Success overlay
           if (_isSubmitting)
             FadeTransition(
               opacity: _successController,
@@ -229,7 +243,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
                           ),
                         ],
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Iconsax.tick_circle,
                         color: Colors.green,
                         size: 50,
@@ -340,7 +354,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
           ),
           const SizedBox(height: 20),
           CategorySelector(
-            selected: _category,
+            selectedCategory: _category,
             onSelected: (c) {
               HapticFeedback.selectionClick();
               setState(() => _category = c);
@@ -393,16 +407,15 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
                     "${_date.day}/${_date.month}/${_date.year}",
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
                     ),
                   ),
                 ],
               ),
             ),
             Icon(
-              Iconsax.arrow_right_3,
+              Iconsax.edit,
+              size: 16,
               color: Colors.grey.shade400,
-              size: 18,
             ),
           ],
         ),
@@ -410,81 +423,32 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen>
     );
   }
 
-  Future<void> _selectDate() async {
-    HapticFeedback.selectionClick();
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.black,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      HapticFeedback.selectionClick();
-      setState(() => _date = picked);
-    }
-  }
-
   Widget _buildSubmitButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isSubmitting ? null : _submit,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: _isSubmitting ? 0 : 4,
-          shadowColor: Colors.black.withValues(alpha: 0.3),
+    return ElevatedButton(
+      onPressed: _isSubmitting ? null : _submit,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: _isSubmitting
-            ? Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor:
-                const AlwaysStoppedAnimation(Colors.white),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Processing...',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        )
-            : Text(
-          isEditing ? "Update Transaction" : "Save Transaction",
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
-          ),
+        minimumSize: const Size(double.infinity, 56),
+      ),
+      child: _isSubmitting
+          ? const SizedBox(
+        height: 24,
+        width: 24,
+        child: CircularProgressIndicator(
+          color: Colors.white,
+          strokeWidth: 2,
+        ),
+      )
+          : Text(
+        isEditing ? "Update Transaction" : "Save Transaction",
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
         ),
       ),
     );

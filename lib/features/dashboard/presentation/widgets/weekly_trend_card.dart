@@ -11,10 +11,10 @@ class WeeklyTrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final data = days.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), dailyData[e.key.toString()] ?? 0);
+      return FlSpot(e.key.toDouble(), dailyData[e.key.toString()] ?? 0.0);
     }).toList();
 
-    final maxY = (dailyData.values.isEmpty ? 1000 : dailyData.values.reduce((a, b) => a > b ? a : b)) * 1.2;
+    final maxY = (dailyData.values.isEmpty ? 1000.0 : dailyData.values.reduce((a, b) => a > b ? a : b)) * 1.2;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -73,7 +73,7 @@ class WeeklyTrendCard extends StatelessWidget {
                   ),
                 ],
                 maxY: maxY,
-                minY: 0,
+                minY: 0.0,
               ),
             ),
           ),

@@ -17,6 +17,7 @@ class InsightsLocalDataSourceImpl implements InsightsLocalDataSource {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
+    // Monday as start of week
     final thisWeekStart = today.subtract(Duration(days: today.weekday - 1));
     final lastWeekStart = thisWeekStart.subtract(const Duration(days: 7));
     final lastWeekEnd = thisWeekStart;
@@ -25,6 +26,9 @@ class InsightsLocalDataSourceImpl implements InsightsLocalDataSource {
     double thisWeekExpense = 0;
     double lastWeekExpense = 0;
     final monthlyTrend = <String, double>{};
+    final dailySpending = <int, double>{
+      1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0
+    };
     int expenseCount = 0;
 
     for (final txn in transactions) {
@@ -40,10 +44,14 @@ class InsightsLocalDataSourceImpl implements InsightsLocalDataSource {
 
       if (txn.date.isAfter(thisWeekStart.subtract(const Duration(seconds: 1)))) {
         thisWeekExpense += amount;
+        
+        // Populate daily spending for this week
+        final weekday = txn.date.weekday;
+        dailySpending[weekday] = (dailySpending[weekday] ?? 0) + amount;
       }
 
       if (txn.date.isAfter(lastWeekStart.subtract(const Duration(seconds: 1))) &&
-          txn.date.isBefore(lastWeekEnd.add(const Duration(days: 1)))) {
+          txn.date.isBefore(lastWeekEnd)) {
         lastWeekExpense += amount;
       }
 
@@ -72,6 +80,7 @@ class InsightsLocalDataSourceImpl implements InsightsLocalDataSource {
       categoryBreakdown: categoryBreakdown,
       monthlyTrend: monthlyTrend,
       averageDailySpend: averageDailySpend,
+      dailySpending: dailySpending,
     );
   }
 }

@@ -7,9 +7,13 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/screens/add_edit_transaction_screen.dart';
 import '../../features/goals/presentation/screens/goals_screen.dart';
+import '../../features/goals/presentation/screens/add_goal_screen.dart';
+import '../../features/goals/presentation/screens/saving_streak_screen.dart';
 import '../../features/insights/presentation/screens/insights_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../shared/widgets/app_bottom_nav.dart';
+import '../../features/goals/domain/entities/goal.dart';
+import '../../features/transactions/domain/entities/transaction.dart';
 
 class AppRouter {
   static GoRouter router(AuthBloc authBloc) {
@@ -56,17 +60,34 @@ class AppRouter {
                   routes: [
                     GoRoute(
                       path: 'add',
-                      builder: (context, state) => const AddEditTransactionScreen(),
+                      builder: (context, state) => AddEditTransactionScreen(
+                        transaction: state.extra as Transaction?,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
+            // ... inside StatefulShellBranch for /goals
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/goals',
                   builder: (context, state) => const GoalsScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'add',
+                      builder: (context, state) {
+                        // Retrieve goalType passed via context.push('/goals/add', extra: GoalType.savings)
+                        final goalType = state.extra as GoalType? ?? GoalType.savings;
+                        return AddGoalScreen(goalType: goalType);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'streak',
+                      builder: (context, state) => const SavingStreakScreen(),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../cubit/insights_cubit.dart';
 import '../cubit/insights_state.dart';
+import '../../domain/entities/insight.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -48,42 +49,42 @@ class _InsightsScreenState extends State<InsightsScreen> {
             }
 
             final insight = state.insight;
-            final chartValues = _buildWeekSeries(insight.thisWeekExpense);
+            final chartValues = _buildWeekSeries(insight);
             final categoryEntries = insight.categoryBreakdown.entries.toList()
               ..sort((a, b) => b.value.compareTo(a.value));
             final topCategories = categoryEntries.take(5).toList();
-            final total = topCategories.fold<double>(0, (sum, e) => sum + e.value);
+            final total = topCategories.fold<double>(0.0, (sum, e) => sum + e.value);
             final change = insight.getWeeklyChange();
 
             return RefreshIndicator(
               color: const Color(0xFF3B82F6),
               onRefresh: () => context.read<InsightsCubit>().refreshInsights(),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+                padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 100.0),
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 16.0),
                   _RangeSelector(
                     selectedIndex: _selectedRange,
                     onChanged: (value) => setState(() => _selectedRange = value),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 16.0),
                   _TrendCard(chartValues: chartValues, weeklyChange: change),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 14.0),
                   _SummaryInfoCard(
                     changePercent: change,
                     topCategory: insight.topCategory,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 20.0),
                   const Text(
                     'Category Breakdown',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
-                      fontSize: 34,
+                      fontSize: 34.0,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 14.0),
                   _CategoryBreakdownCard(
                     categories: topCategories,
                     total: total,
@@ -105,29 +106,27 @@ class _InsightsScreenState extends State<InsightsScreen> {
             'Statistics',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 40,
+              fontSize: 40.0,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
         Container(
-          width: 42,
-          height: 42,
+          width: 42.0,
+          height: 42.0,
           decoration: BoxDecoration(
             color: const Color(0xFF141A24),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.0),
           ),
-          child: const Icon(Iconsax.calendar, color: Colors.white70, size: 20),
+          child: const Icon(Iconsax.calendar, color: Colors.white70, size: 20.0),
         ),
       ],
     );
   }
 
-  List<double> _buildWeekSeries(double totalAmount) {
-    if (totalAmount <= 0) return [45, 68, 92, 38, 115, 134, 58];
-
-    const ratios = [0.12, 0.14, 0.16, 0.11, 0.17, 0.18, 0.12];
-    return ratios.map((r) => totalAmount * r).toList();
+  List<double> _buildWeekSeries(Insight insight) {
+    // Return daily spending for Mon-Sun (1-7)
+    return List.generate(7, (index) => insight.dailySpending[index + 1] ?? 0.0);
   }
 }
 
@@ -150,15 +149,15 @@ class _RangeSelector extends StatelessWidget {
 
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(right: index == labels.length - 1 ? 0 : 8),
+            padding: EdgeInsets.only(right: index == labels.length - 1 ? 0.0 : 8.0),
             child: GestureDetector(
               onTap: () => onChanged(index),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
                 decoration: BoxDecoration(
                   color: selected ? const Color(0xFF3B82F6) : const Color(0xFF151C27),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: Text(
                   labels[index],
@@ -188,13 +187,13 @@ class _TrendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final increased = weeklyChange >= 0;
+    final increased = weeklyChange >= 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18.0),
       decoration: BoxDecoration(
         color: const Color(0xFF101722),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +205,7 @@ class _TrendCard extends StatelessWidget {
                   'Spending Trends',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 30,
+                    fontSize: 30.0,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -216,9 +215,9 @@ class _TrendCard extends StatelessWidget {
                   Icon(
                     increased ? Iconsax.arrow_up_2 : Iconsax.arrow_down_2,
                     color: increased ? const Color(0xFFFB5B63) : const Color(0xFF4D8DFF),
-                    size: 14,
+                    size: 14.0,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 4.0),
                   Text(
                     '${weeklyChange.abs().toStringAsFixed(0)}%',
                     style: TextStyle(
@@ -230,7 +229,7 @@ class _TrendCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 12.0),
           AspectRatio(
             aspectRatio: 1.55,
             child: BarChart(
@@ -252,10 +251,10 @@ class _TrendCard extends StatelessWidget {
                           return const SizedBox.shrink();
                         }
                         return Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.only(top: 6.0),
                           child: Text(
                             days[index],
-                            style: const TextStyle(color: Color(0xFF8D97A9), fontSize: 12),
+                            style: const TextStyle(color: Color(0xFF8D97A9), fontSize: 12.0),
                           ),
                         );
                       },
@@ -269,8 +268,8 @@ class _TrendCard extends StatelessWidget {
                     barRods: [
                       BarChartRodData(
                         toY: chartValues[index],
-                        width: 18,
-                        borderRadius: BorderRadius.circular(4),
+                        width: 18.0,
+                        borderRadius: BorderRadius.circular(4.0),
                         gradient: LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
@@ -286,13 +285,13 @@ class _TrendCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 4.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: chartValues
                 .map((amount) => Text(
-                      '\$${amount.toStringAsFixed(0)}',
-                      style: const TextStyle(color: Color(0xFF8D97A9), fontSize: 12),
+                      '₹${amount.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Color(0xFF8D97A9), fontSize: 12.0),
                     ))
                 .toList(),
           ),
@@ -313,18 +312,18 @@ class _SummaryInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final increased = changePercent >= 0;
+    final increased = changePercent >= 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
         color: const Color(0xFF101722),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.0),
       ),
       child: Row(
         children: [
-          const Icon(Iconsax.info_circle, color: Color(0xFF4D8DFF), size: 16),
-          const SizedBox(width: 10),
+          const Icon(Iconsax.info_circle, color: Color(0xFF4D8DFF), size: 16.0),
+          const SizedBox(width: 10.0),
           Expanded(
             child: Text(
               'You spent ${changePercent.abs().toStringAsFixed(0)}% '
@@ -333,7 +332,7 @@ class _SummaryInfoCard extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 14.0,
                 height: 1.4,
               ),
             ),
@@ -366,14 +365,14 @@ class _CategoryBreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: const Color(0xFF101722),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.0),
       ),
       child: categories.isEmpty
           ? const Padding(
-              padding: EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.0),
               child: Text(
                 'No category data available.',
                 style: TextStyle(color: Color(0xFF8A93A4)),
@@ -383,25 +382,25 @@ class _CategoryBreakdownCard extends StatelessWidget {
               children: List.generate(categories.length, (index) {
                 final category = categories[index];
                 final amount = category.value;
-                final percent = total > 0 ? (amount / total) : 0;
+                final percent = total > 0.0 ? (amount / total) : 0.0;
                 final color = _palette(index);
 
                 return Padding(
-                  padding: EdgeInsets.only(bottom: index == categories.length - 1 ? 0 : 18),
+                  padding: EdgeInsets.only(bottom: index == categories.length - 1 ? 0.0 : 18.0),
                   child: Column(
                     children: [
                       Row(
                         children: [
                           Container(
-                            width: 32,
-                            height: 32,
+                            width: 32.0,
+                            height: 32.0,
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(10.0),
                             ),
-                            child: Icon(_iconForIndex(index), color: color, size: 16),
+                            child: Icon(_iconForIndex(index), color: color, size: 16.0),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 10.0),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,12 +410,12 @@ class _CategoryBreakdownCard extends StatelessWidget {
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 16,
+                                    fontSize: 16.0,
                                   ),
                                 ),
                                 Text(
-                                  '${(percent * 100).toStringAsFixed(0)}% of total',
-                                  style: const TextStyle(color: Color(0xFF8F9AAD), fontSize: 12),
+                                  '${(percent * 100.0).toStringAsFixed(0)}% of total',
+                                  style: const TextStyle(color: Color(0xFF8F9AAD), fontSize: 12.0),
                                 ),
                               ],
                             ),
@@ -426,17 +425,17 @@ class _CategoryBreakdownCard extends StatelessWidget {
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
-                              fontSize: 18,
+                              fontSize: 18.0,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 8.0),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(99),
+                        borderRadius: BorderRadius.circular(99.0),
                         child: LinearProgressIndicator(
                           value: percent,
-                          minHeight: 6,
+                          minHeight: 6.0,
                           backgroundColor: const Color(0xFF1B2430),
                           valueColor: AlwaysStoppedAnimation(color),
                         ),
@@ -494,18 +493,18 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Iconsax.warning_2, color: Colors.redAccent, size: 42),
-            const SizedBox(height: 10),
+            const Icon(Iconsax.warning_2, color: Colors.redAccent, size: 42.0),
+            const SizedBox(height: 10.0),
             Text(
               message,
               style: const TextStyle(color: Colors.white70),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 14.0),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),

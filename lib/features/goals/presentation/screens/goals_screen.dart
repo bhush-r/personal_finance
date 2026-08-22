@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
-import 'package:personal_finance/features/goals/presentation/screens/saving_streak_screen.dart';
 
 import '../cubit/goal_cubit.dart';
 import '../cubit/goal_state.dart';
@@ -52,12 +51,7 @@ class _GoalsScreenState extends State<GoalsScreen>
             child: IconButton(
               icon: const Icon(Iconsax.flash_1),
               onPressed: () {
-                // Navigate directly using named route
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const SavingStreakScreen(),
-                  ),
-                );
+                context.push('/goals/streak');
               },
               tooltip: "Saving Streaks",
             ),

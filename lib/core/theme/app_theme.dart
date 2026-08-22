@@ -14,7 +14,7 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.background,
     textTheme: GoogleFonts.plusJakartaSansTextTheme(),
 
-    // Splash aur Ripple effects ko smooth banane ke liye
+    // Smooth splash and ripple effects
     splashFactory: InkSparkle.splashFactory,
 
     appBarTheme: AppBarTheme(
@@ -30,7 +30,7 @@ class AppTheme {
       iconTheme: const IconThemeData(color: AppColors.textPrimary),
     ),
 
-    // Cards ko clean aur premium look dene ke liye
+    // Clean and premium card styling
     cardTheme: CardThemeData(
       color: AppColors.surface,
       elevation: 0,
@@ -41,7 +41,7 @@ class AppTheme {
       ),
     ),
 
-    // Primary buttons ki styling
+    // Primary buttons styling
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
@@ -53,7 +53,7 @@ class AppTheme {
       ),
     ),
 
-    // Input fields ko responsive aur smooth banane ke liye
+    // Responsive and smooth input fields
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
@@ -77,7 +77,7 @@ class AppTheme {
       hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
     ),
 
-    // Bottom Navigation Bar ki modern styling
+    // Modern bottom navigation bar styling
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
       elevation: 10,

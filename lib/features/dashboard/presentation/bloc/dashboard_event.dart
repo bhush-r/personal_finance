@@ -7,6 +7,10 @@ abstract class DashboardEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadDashboardSummary extends DashboardEvent {
-  const LoadDashboardSummary();
+class LoadDashboard extends DashboardEvent {
+  const LoadDashboard();
+}
+
+class RefreshDashboard extends DashboardEvent {
+  const RefreshDashboard();
 }

@@ -19,20 +19,32 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     required this.getTransactions,
     required this.transactionBloc,
   }) : super(const DashboardInitial()) {
-    on<LoadDashboardSummary>(_onLoadDashboardSummary);
+    on<LoadDashboard>(_onLoadDashboard);
+    on<RefreshDashboard>(_onRefreshDashboard);
 
     // Listen to TransactionBloc state changes to keep Dashboard in sync
     _transactionSubscription = transactionBloc.stream.listen((state) {
       if (state is TransactionLoaded) {
-        add(const LoadDashboardSummary());
+        add(const LoadDashboard());
       }
     });
   }
 
-  Future<void> _onLoadDashboardSummary(
-      LoadDashboardSummary event,
+  Future<void> _onLoadDashboard(
+      LoadDashboard event,
       Emitter<DashboardState> emit,
       ) async {
+    await _fetchDashboardData(emit);
+  }
+
+  Future<void> _onRefreshDashboard(
+      RefreshDashboard event,
+      Emitter<DashboardState> emit,
+      ) async {
+    await _fetchDashboardData(emit);
+  }
+
+  Future<void> _fetchDashboardData(Emitter<DashboardState> emit) async {
     emit(const DashboardLoading());
 
     final summaryResult = await getFinancialSummary(NoParams());

@@ -1,534 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
-import '../../domain/entities/transaction.dart';
-import '../bloc/transaction_bloc.dart';
-
-import '../widgets/empty_transaction_state.dart';
-import '../widgets/transaction_filter_bar.dart'
-    hide TransactionsLoadingSkeleton, EmptyTransactionState;
-
-import '../widgets/transaction_tile.dart';
-
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../shared/widgets/loading_shimmer_skeleton.dart';
+import '../../../../injection_container.dart';
+import '../../domain/entities/transaction.dart';
+import '../viewmodels/transactions_view_model.dart';
 
-class TransactionsScreen extends StatefulWidget {
+class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
-
   @override
-  State<TransactionsScreen> createState() => _TransactionsScreenState();
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+    create: (_) => sl<TransactionsViewModel>()..load(),
+    child: const _TransactionsView(),
+  );
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen>
-    with TickerProviderStateMixin {
-  TransactionType? _selectedType;
-  String _searchQuery = '';
-
-  late AnimationController _fabController;
-  late AnimationController _summaryController;
-  final ScrollController _scrollController = ScrollController();
-  bool _showFab = true;
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<TransactionBloc>().add(const LoadTransactionsEvent());
-
-    _fabController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    )..forward();
-
-    _summaryController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    _scrollController.addListener(_handleScroll);
-  }
-
-  void _handleScroll() {
-    if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
-      if (_showFab) {
-        setState(() => _showFab = false);
-        _fabController.reverse();
-      }
-    } else if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
-      if (!_showFab) {
-        setState(() => _showFab = true);
-        _fabController.forward();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _fabController.dispose();
-    _summaryController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _applyFilter() {
-    HapticFeedback.selectionClick();
-    context.read<TransactionBloc>().add(
-      FilterTransactionsEvent(
-        type: _selectedType,
-        searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
-      ),
-    );
-  }
-
+class _TransactionsView extends StatelessWidget {
+  const _TransactionsView();
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<TransactionsViewModel>();
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      floatingActionButton: ScaleTransition(
-        scale: CurvedAnimation(
-          parent: _fabController,
-          curve: Curves.easeInOutBack,
-        ),
-        child: FloatingActionButton.extended(
-          heroTag: 'transactions_fab',
-          backgroundColor: Colors.black,
-          elevation: 4,
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            context.push('/transactions/add');
-          },
-          icon: const Icon(Iconsax.add),
-          label: const Text('Add'),
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await context.push('/transactions/add');
+          if (context.mounted) await vm.load();
+        },
+        icon: const Icon(Iconsax.add), label: const Text('Add expense'),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildFilter(),
-            Expanded(child: _buildList()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
+      body: SafeArea(child: RefreshIndicator(
+        onRefresh: vm.load,
+        child: CustomScrollView(physics: const AlwaysScrollableScrollPhysics(), slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
+            sliver: SliverList(delegate: SliverChildListDelegate([
+              _Header(onSort: vm.sortBy), const SizedBox(height: 20),
+              _SummaryCard(viewModel: vm), const SizedBox(height: 20),
+              _Filters(viewModel: vm), const SizedBox(height: 24),
+              if (vm.isLoading && vm.transactions.isEmpty) const _LoadingState()
+              else if (vm.errorMessage != null && vm.transactions.isEmpty) _ErrorState(message: vm.errorMessage!, onRetry: vm.load)
+              else if (vm.transactions.isEmpty) const _EmptyState()
+              else _TransactionList(transactions: vm.transactions),
+            ])),
           ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              "Transactions",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              elevation: 0,
-              child: PopupMenuButton<String>(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 8,
-                offset: const Offset(0, 50),
-                onSelected: (value) {
-                  HapticFeedback.selectionClick();
-                  context.read<TransactionBloc>().add(
-                    SortTransactionsEvent(sortBy: value),
-                  );
-                },
-                itemBuilder: (_) => [
-                  _buildMenuItem(Iconsax.arrow_down, 'Latest', 'date_desc'),
-                  _buildMenuItem(Iconsax.arrow_up, 'Oldest', 'date_asc'),
-                  _buildMenuItem(Iconsax.arrow_3, 'High', 'amount_desc'),
-                  _buildMenuItem(Iconsax.arrow_down_1, 'Low', 'amount_asc'),
-                ],
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Icon(Iconsax.sort, size: 22),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  PopupMenuItem<String> _buildMenuItem(IconData icon, String label, String value) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 12),
-          Text(label),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilter() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: TransactionFilterBar(
-          selectedType: _selectedType,
-          searchQuery: _searchQuery,
-          onTypeChanged: (type) {
-            setState(() => _selectedType = type);
-            _applyFilter();
-          },
-          onSearchChanged: (q) {
-            setState(() => _searchQuery = q);
-            _applyFilter();
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildList() {
-    return BlocConsumer<TransactionBloc, TransactionState>(
-      listener: (context, state) {
-        if (state is TransactionLoaded) {
-          _summaryController.forward(from: 0);
-        }
-      },
-      builder: (context, state) {
-        if (state is TransactionLoading) {
-          return const TransactionsLoadingSkeleton();
-        }
-
-        if (state is TransactionLoaded) {
-          final txns = state.transactions;
-
-          if (txns.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return Column(
-            children: [
-              _buildSummary(txns),
-              Expanded(
-                child: _buildGroupedTransactionList(txns),
-              ),
-            ],
-          );
-        }
-
-        if (state is TransactionError) {
-          return _buildErrorState(state.message);
-        }
-
-        return const SizedBox();
-      },
-    );
-  }
-
-  /// Groups transactions by day with calculated daily totals
-  Widget _buildGroupedTransactionList(List<Transaction> txns) {
-    // 1. Group transactions by formatted date string
-    final Map<DateTime, List<Transaction>> grouped = {};
-
-    for (var txn in txns) {
-      final dateOnly = DateTime(txn.date.year, txn.date.month, txn.date.day);
-      if (!grouped.containsKey(dateOnly)) {
-        grouped[dateOnly] = [];
-      }
-      grouped[dateOnly]!.add(txn);
-    }
-
-    // 2. Sort date keys descending (newest dates first)
-    final sortedDates = grouped.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
-
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      physics: const BouncingScrollPhysics(),
-      itemCount: sortedDates.length,
-      itemBuilder: (_, index) {
-        final date = sortedDates[index];
-        final dayTxns = grouped[date]!;
-
-        // Calculate Daily Balance Net (Income - Expense)
-        double dayIncome = 0;
-        double dayExpense = 0;
-
-        for (var t in dayTxns) {
-          if (t.type == TransactionType.income) {
-            dayIncome += t.amount;
-          } else {
-            dayExpense += t.amount;
-          }
-        }
-
-        final netDailyTotal = dayIncome - dayExpense;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Daily Group Header with aggregated total
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _getFriendlyDateHeader(date),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  Text(
-                    '${netDailyTotal >= 0 ? '+' : ''}${CurrencyFormatter.format(netDailyTotal)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: netDailyTotal >= 0
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Daily Item List
-            ...dayTxns.map((txn) => Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TransactionTile(
-                transaction: txn,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  context.push('/transactions/add', extra: txn);
-                },
-                onDelete: () => _showDeleteDialog(txn),
-              ),
-            )),
-          ],
-        );
-      },
-    );
-  }
-
-  String _getFriendlyDateHeader(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-
-    if (date == today) {
-      return 'Today';
-    } else if (date == yesterday) {
-      return 'Yesterday';
-    } else {
-      return DateFormat('dd MMM yyyy').format(date);
-    }
-  }
-
-  void _showDeleteDialog(Transaction txn) {
-    HapticFeedback.mediumImpact();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Transaction'),
-        content: const Text('Are you sure you want to delete this transaction?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              HapticFeedback.heavyImpact();
-              context.read<TransactionBloc>().add(DeleteTransactionEvent(txn.id));
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Transaction deleted'),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return const EmptyTransactionState();
-  }
-
-  Widget _buildErrorState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Iconsax.danger, size: 64, color: Colors.red.shade300),
-          const SizedBox(height: 16),
-          Text(
-            'Oops! Something went wrong',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: TextStyle(color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.read<TransactionBloc>().add(const LoadTransactionsEvent());
-            },
-            icon: const Icon(Iconsax.refresh),
-            label: const Text('Retry'),
-            style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummary(List<Transaction> txns) {
-    double income = 0;
-    double expense = 0;
-
-    // Explicit Type Comparison: Income vs Expense calculation fix
-    for (var t in txns) {
-      if (t.type == TransactionType.income) {
-        income += t.amount;
-      } else if (t.type == TransactionType.expense) {
-        expense += t.amount;
-      }
-    }
-
-    final balance = income - expense;
-
-    return SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(0, -0.3),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: _summaryController,
-        curve: Curves.easeOutCubic,
+        ]),
       )),
-      child: FadeTransition(
-        opacity: _summaryController,
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey.shade800],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _animatedItem("Balance", balance, Colors.white),
-              _animatedItem("Income", income, Colors.green.shade300),
-              _animatedItem("Expense", expense, Colors.red.shade300),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _animatedItem(String label, double value, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 4),
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: value),
-          duration: const Duration(milliseconds: 1000),
-          curve: Curves.easeOutCubic,
-          builder: (context, animatedValue, child) {
-            return Text(
-              CurrencyFormatter.format(animatedValue),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: color,
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 }
+
+class _Header extends StatelessWidget {
+  final ValueChanged<String> onSort;
+  const _Header({required this.onSort});
+  @override
+  Widget build(BuildContext context) => Row(children: [
+    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Activity', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+      SizedBox(height: 4), Text('Track every rupee with clarity', style: TextStyle(color: AppColors.textSecondary)),
+    ])),
+    PopupMenuButton<String>(onSelected: onSort, icon: const Icon(Iconsax.sort), itemBuilder: (_) => const [
+      PopupMenuItem(value: 'date_desc', child: Text('Newest first')), PopupMenuItem(value: 'date_asc', child: Text('Oldest first')),
+      PopupMenuItem(value: 'amount_desc', child: Text('Highest amount')), PopupMenuItem(value: 'amount_asc', child: Text('Lowest amount')),
+    ]),
+  ]);
+}
+
+class _SummaryCard extends StatelessWidget {
+  final TransactionsViewModel viewModel;
+  const _SummaryCard({required this.viewModel});
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(22), decoration: BoxDecoration(
+      gradient: const LinearGradient(colors: [Color(0xFF312E81), Color(0xFF6366F1)]), borderRadius: BorderRadius.circular(28),
+    ), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Net balance', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)), const SizedBox(height: 6),
+      Text(CurrencyFormatter.format(viewModel.balance), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 20), Row(children: [
+        _Amount(label: 'Income', amount: viewModel.income, color: const Color(0xFF86EFAC)), const SizedBox(width: 28),
+        _Amount(label: 'Spent', amount: viewModel.expenses, color: const Color(0xFFFDA4AF)),
+      ]),
+    ]),
+  );
+}
+
+class _Amount extends StatelessWidget {
+  final String label; final double amount; final Color color;
+  const _Amount({required this.label, required this.amount, required this.color});
+  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)), const SizedBox(height: 3),
+    Text(CurrencyFormatter.format(amount), style: TextStyle(color: color, fontWeight: FontWeight.w800)),
+  ]);
+}
+
+class _Filters extends StatelessWidget {
+  final TransactionsViewModel viewModel;
+  const _Filters({required this.viewModel});
+  @override Widget build(BuildContext context) => Column(children: [
+    TextField(onChanged: viewModel.setSearchQuery, decoration: const InputDecoration(prefixIcon: Icon(Iconsax.search_normal), hintText: 'Search category or note')),
+    const SizedBox(height: 12), Row(children: [
+      _TypeChip(label: 'All', selected: viewModel.selectedType == null, onTap: () => viewModel.setType(null)), const SizedBox(width: 8),
+      _TypeChip(label: 'Income', selected: viewModel.selectedType == TransactionType.income, onTap: () => viewModel.setType(TransactionType.income)), const SizedBox(width: 8),
+      _TypeChip(label: 'Expenses', selected: viewModel.selectedType == TransactionType.expense, onTap: () => viewModel.setType(TransactionType.expense)),
+    ]),
+  ]);
+}
+class _TypeChip extends StatelessWidget { final String label; final bool selected; final VoidCallback onTap; const _TypeChip({required this.label, required this.selected, required this.onTap}); @override Widget build(BuildContext context) => ChoiceChip(label: Text(label), selected: selected, onSelected: (_) => onTap()); }
+
+class _TransactionList extends StatelessWidget {
+  final List<Transaction> transactions;
+  const _TransactionList({required this.transactions});
+  @override Widget build(BuildContext context) => Column(children: transactions.map((item) => _TransactionRow(transaction: item)).toList());
+}
+class _TransactionRow extends StatelessWidget {
+  final Transaction transaction;
+  const _TransactionRow({required this.transaction});
+  @override Widget build(BuildContext context) {
+    final isIncome = transaction.type == TransactionType.income;
+    final tint = isIncome ? const Color(0xFF16A34A) : const Color(0xFFE11D48);
+    return Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(
+      onTap: () async {
+        await context.push('/transactions/add', extra: transaction);
+        if (context.mounted) await context.read<TransactionsViewModel>().load();
+      }, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: CircleAvatar(backgroundColor: tint.withValues(alpha: .12), child: Icon(isIncome ? Iconsax.arrow_down : Iconsax.arrow_up, color: tint)),
+      title: Text(transaction.category, style: const TextStyle(fontWeight: FontWeight.w700)),
+      subtitle: Text(transaction.note.isEmpty ? DateFormat('d MMM, y').format(transaction.date) : '${transaction.note} · ${DateFormat('d MMM').format(transaction.date)}', maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text('${isIncome ? '+' : '-'}${CurrencyFormatter.format(transaction.amount)}', style: TextStyle(color: tint, fontWeight: FontWeight.w800)),
+        PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'edit') {
+              await context.push('/transactions/add', extra: transaction);
+              if (context.mounted) await context.read<TransactionsViewModel>().load();
+              return;
+            }
+            final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+              title: const Text('Delete transaction?'),
+              content: const Text('This transaction will be removed from your local history.'),
+              actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')), TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Delete'))],
+            ));
+            if (confirmed == true && context.mounted) {
+              final error = await context.read<TransactionsViewModel>().delete(transaction.id);
+              if (context.mounted && error != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+            }
+          },
+          itemBuilder: (_) => const [PopupMenuItem(value: 'edit', child: Text('Edit')), PopupMenuItem(value: 'delete', child: Text('Delete'))],
+        ),
+      ]),
+    ));
+  }
+}
+class _LoadingState extends StatelessWidget { const _LoadingState(); @override Widget build(BuildContext context) => const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())); }
+class _EmptyState extends StatelessWidget { const _EmptyState(); @override Widget build(BuildContext context) => const Padding(padding: EdgeInsets.all(42), child: Column(children: [Icon(Iconsax.receipt_item, size: 52, color: AppColors.textSecondary), SizedBox(height: 14), Text('No transactions yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)), SizedBox(height: 6), Text('Add your first expense or income to get started.', textAlign: TextAlign.center)])); }
+class _ErrorState extends StatelessWidget { final String message; final VoidCallback onRetry; const _ErrorState({required this.message, required this.onRetry}); @override Widget build(BuildContext context) => Padding(padding: const EdgeInsets.all(36), child: Column(children: [const Icon(Iconsax.warning_2, color: AppColors.expense, size: 48), const SizedBox(height: 12), Text(message, textAlign: TextAlign.center), TextButton(onPressed: onRetry, child: const Text('Try again'))])); }

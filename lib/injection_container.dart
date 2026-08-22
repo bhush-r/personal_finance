@@ -25,6 +25,7 @@ import 'features/transactions/domain/usecases/filter_transactions.dart';
 import 'features/transactions/domain/usecases/get_transactions.dart';
 import 'features/transactions/domain/usecases/update_transaction.dart';
 import 'features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'features/transactions/presentation/viewmodels/transactions_view_model.dart';
 
 import 'features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'features/dashboard/domain/usecases/get_financial_summary.dart';
@@ -35,6 +36,7 @@ import 'features/dashboard/data/datasources/dashboard_local_datasource.dart';
 import 'features/goals/data/datasources/goal_local_datasource.dart';
 import 'features/goals/data/datasources/goal_remote_datasource.dart';
 import 'features/goals/data/models/goal_model.dart';
+import 'features/goals/data/models/saving_streak_model.dart';
 import 'features/goals/data/repositories/goal_repository_impl.dart';
 import 'features/goals/domain/repositories/goal_repository.dart';
 import 'features/goals/domain/usecases/add_goal.dart';
@@ -95,12 +97,15 @@ Future<void> init() async {
 
   if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TransactionModelAdapter());
   if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(GoalModelAdapter());
+  if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(SavingStreakModelAdapter());
 
   final transactionBox = await Hive.openBox<TransactionModel>('transactions');
   final goalsBox = await Hive.openBox<GoalModel>('goals');
+  final streakBox = await Hive.openBox<SavingStreakModel>('saving_streaks');
 
   sl.registerLazySingleton<Box<TransactionModel>>(() => transactionBox);
   sl.registerLazySingleton<Box<GoalModel>>(() => goalsBox);
+  sl.registerLazySingleton<Box<SavingStreakModel>>(() => streakBox);
 
   // 4. Transactions Feature
   sl.registerLazySingleton<TransactionLocalDataSource>(
@@ -126,6 +131,15 @@ Future<void> init() async {
 
   sl.registerLazySingleton<TransactionBloc>(
         () => TransactionBloc(
+      getTransactions: sl(),
+      addTransaction: sl(),
+      updateTransaction: sl(),
+      deleteTransaction: sl(),
+      filterTransactions: sl(),
+    ),
+  );
+  sl.registerFactory<TransactionsViewModel>(
+        () => TransactionsViewModel(
       getTransactions: sl(),
       addTransaction: sl(),
       updateTransaction: sl(),
@@ -177,7 +191,7 @@ Future<void> init() async {
       deleteGoal: sl(),
     ),
   );
-  sl.registerFactory<SavingStreakCubit>(() => SavingStreakCubit());
+  sl.registerFactory<SavingStreakCubit>(() => SavingStreakCubit(box: sl()));
 
   // 7. Insights Feature
   sl.registerLazySingleton<InsightsLocalDataSource>(

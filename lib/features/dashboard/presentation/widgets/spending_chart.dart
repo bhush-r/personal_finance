@@ -25,7 +25,7 @@ class SpendingChart extends StatelessWidget {
       );
     }
 
-    final total = categoryData.values.fold<double>(0, (a, b) => a + b);
+    final total = categoryData.values.fold<double>(0.0, (a, b) => a + b);
     final chartData = categoryData.entries
         .map((e) => PieChartSectionData(
       value: e.value,

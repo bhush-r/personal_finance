@@ -31,7 +31,7 @@ class BalanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
         child: Stack(
           children: [
-            // Decorative glassmorphic circles
+            // Decorative glass effect circles
             Positioned(
               right: -40,
               top: -40,

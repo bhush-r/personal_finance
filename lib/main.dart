@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -12,10 +13,15 @@ import 'features/goals/presentation/cubit/goal_cubit.dart';
 import 'features/insights/presentation/cubit/insights_cubit.dart';
 import 'features/settings/presentation/cubit/settings_cubit.dart';
 import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await Hive.initFlutter();
 
   await di.init();
@@ -27,10 +33,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
+    return ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: MultiBlocProvider(
+        providers: [
         BlocProvider<AuthBloc>(
-          create: (_) => sl<AuthBloc>(),
+          create: (_) => sl<AuthBloc>()..add(const AuthCheckRequested()),
         ),
         BlocProvider<TransactionBloc>(
           create: (_) => sl<TransactionBloc>(),
@@ -48,15 +56,19 @@ class MyApp extends StatelessWidget {
           create: (_) => sl<SettingsCubit>(),
         ),
       ],
-      child: Builder(
-        builder: (context) {
+        child: Builder(
+          builder: (context) {
           final authBloc = context.read<AuthBloc>();
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             title: 'Personal Finance',
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: context.watch<ThemeProvider>().themeMode,
             routerConfig: AppRouter.router(authBloc),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

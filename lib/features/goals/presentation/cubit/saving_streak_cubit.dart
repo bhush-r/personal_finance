@@ -1,42 +1,53 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
+import '../../data/models/saving_streak_model.dart';
 import '../../domain/entities/saving_streak.dart';
 import 'saving_streak_state.dart';
 
 class SavingStreakCubit extends Cubit<SavingStreakState> {
-  final List<SavingStreak> _streaks = [];
+  final Box<SavingStreakModel> box;
 
-  SavingStreakCubit() : super(const SavingStreakInitial());
+  SavingStreakCubit({required this.box}) : super(const SavingStreakInitial());
 
   Future<void> loadStreaks() async {
     emit(const SavingStreakLoading());
     try {
-      _checkAndUpdateExpiredStreaks();
-      emit(SavingStreakLoaded(streaks: List.from(_streaks)));
+      final streaks = box.values.map((m) => m.toEntity()).toList();
+      final updatedStreaks = _checkAndUpdateExpiredStreaks(streaks);
+      
+      // Save back updated streaks if any changed
+      for (var streak in updatedStreaks) {
+        final model = SavingStreakModel.fromEntity(streak);
+        await box.put(model.id, model);
+      }
+      
+      emit(SavingStreakLoaded(streaks: updatedStreaks));
     } catch (e) {
       emit(SavingStreakError(message: e.toString()));
     }
   }
 
-  void _checkAndUpdateExpiredStreaks() {
+  List<SavingStreak> _checkAndUpdateExpiredStreaks(List<SavingStreak> streaks) {
     final now = DateTime.now();
-    for (int i = 0; i < _streaks.length; i++) {
-      final streak = _streaks[i];
+    return streaks.map((streak) {
       if (streak.status == StreakStatus.active && streak.lastSavedDate != null) {
         final hoursSinceLastSave = now.difference(streak.lastSavedDate!).inHours;
         if (hoursSinceLastSave >= 48) {
-          _streaks[i] = streak.copyWith(
+          return streak.copyWith(
             currentStreak: 0,
             status: StreakStatus.broken,
           );
         }
       }
-    }
+      return streak;
+    }).toList();
   }
 
   Future<void> createStreak(SavingStreak streak) async {
     try {
-      _streaks.add(streak);
-      emit(SavingStreakLoaded(streaks: List.from(_streaks)));
+      final model = SavingStreakModel.fromEntity(streak);
+      await box.put(model.id, model);
+      await loadStreaks();
     } catch (e) {
       emit(SavingStreakError(message: e.toString()));
     }
@@ -44,10 +55,10 @@ class SavingStreakCubit extends Cubit<SavingStreakState> {
 
   Future<void> updateStreakWithSaving(String streakId, double amount) async {
     try {
-      final index = _streaks.indexWhere((s) => s.id == streakId);
-      if (index == -1) return;
+      final model = box.get(streakId);
+      if (model == null) return;
 
-      final streak = _streaks[index];
+      final streak = model.toEntity();
       final now = DateTime.now();
       final isToday = streak.lastSavedDate != null &&
           streak.lastSavedDate!.year == now.year &&
@@ -75,8 +86,10 @@ class SavingStreakCubit extends Cubit<SavingStreakState> {
         status: StreakStatus.active,
       );
 
-      _streaks[index] = updatedStreak;
-      emit(SavingStreakLoaded(streaks: List.from(_streaks)));
+      final updatedModel = SavingStreakModel.fromEntity(updatedStreak);
+      await box.put(streakId, updatedModel);
+      
+      await loadStreaks();
       emit(StreakUpdated(streak: updatedStreak));
     } catch (e) {
       emit(SavingStreakError(message: e.toString()));
@@ -85,16 +98,16 @@ class SavingStreakCubit extends Cubit<SavingStreakState> {
 
   Future<void> pauseStreak(String streakId) async {
     try {
-      final index = _streaks.indexWhere((s) => s.id == streakId);
-      if (index == -1) return;
+      final model = box.get(streakId);
+      if (model == null) return;
 
-      final updatedStreak = _streaks[index].copyWith(
+      final updatedStreak = model.toEntity().copyWith(
         status: StreakStatus.paused,
         pausedDate: DateTime.now(),
       );
 
-      _streaks[index] = updatedStreak;
-      emit(SavingStreakLoaded(streaks: List.from(_streaks)));
+      await box.put(streakId, SavingStreakModel.fromEntity(updatedStreak));
+      await loadStreaks();
     } catch (e) {
       emit(SavingStreakError(message: e.toString()));
     }
@@ -102,16 +115,16 @@ class SavingStreakCubit extends Cubit<SavingStreakState> {
 
   Future<void> resumeStreak(String streakId) async {
     try {
-      final index = _streaks.indexWhere((s) => s.id == streakId);
-      if (index == -1) return;
+      final model = box.get(streakId);
+      if (model == null) return;
 
-      final updatedStreak = _streaks[index].copyWith(
+      final updatedStreak = model.toEntity().copyWith(
         status: StreakStatus.active,
         pausedDate: null,
       );
 
-      _streaks[index] = updatedStreak;
-      emit(SavingStreakLoaded(streaks: List.from(_streaks)));
+      await box.put(streakId, SavingStreakModel.fromEntity(updatedStreak));
+      await loadStreaks();
     } catch (e) {
       emit(SavingStreakError(message: e.toString()));
     }
@@ -119,8 +132,8 @@ class SavingStreakCubit extends Cubit<SavingStreakState> {
 
   Future<void> deleteStreak(String streakId) async {
     try {
-      _streaks.removeWhere((s) => s.id == streakId);
-      emit(SavingStreakLoaded(streaks: List.from(_streaks)));
+      await box.delete(streakId);
+      await loadStreaks();
     } catch (e) {
       emit(SavingStreakError(message: e.toString()));
     }

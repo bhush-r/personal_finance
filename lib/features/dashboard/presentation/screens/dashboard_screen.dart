@@ -28,7 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Dashboard load karne ke liye event trigger karein
+    // Trigger event to load dashboard data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<DashboardBloc>().add(const LoadDashboard());
@@ -63,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       delegate: SliverChildListDelegate([
                         const SizedBox(height: 12),
 
-                        // Glassmorphic Balance Card
+                        // Glass effect Balance Card
                         FadeInAnimation(
                           child: BalanceCard(balance: state.summary.balance),
                         ),
