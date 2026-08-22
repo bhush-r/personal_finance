@@ -165,13 +165,13 @@ class _BalanceCard extends StatelessWidget {
               _BalanceMeta(
                 label: 'Income',
                 amount: summary.totalIncome,
-                icon: Iconsax.arrow_up_3,
+                icon: Iconsax.arrow_up_2,
               ),
               const SizedBox(width: 30),
               _BalanceMeta(
                 label: 'Expenses',
                 amount: summary.totalExpense,
-                icon: Iconsax.arrow_down_1,
+                icon: Iconsax.arrow_down_2,
               ),
             ],
           ),
@@ -377,10 +377,11 @@ class _SpendingByCategoryCard extends StatelessWidget {
 
   String _formatLabel(String key) {
     final spaced = key.replaceAll('_', ' ');
-    return spaced.split(' ').map((word) {
-      if (word.isEmpty) return word;
-      return '${word[0].toUpperCase()}${word.substring(1)}';
-    }).join(' & ').replaceAll(' & ', ' ');
+    return spaced
+        .split(' ')
+        .map((word) =>
+            word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 }
 
@@ -457,7 +458,7 @@ class _RecentTransactionTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isIncome ? Iconsax.arrow_down_1 : Iconsax.arrow_up_3,
+              isIncome ? Iconsax.arrow_down_2 : Iconsax.arrow_up_2,
               color: amountColor,
               size: 20,
             ),

@@ -34,11 +34,11 @@ class AppBottomNav extends StatelessWidget {
           selectedFontSize: 11,
           unselectedFontSize: 11,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Iconsax.home_1), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.home), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Iconsax.receipt), label: 'Activity'),
             BottomNavigationBarItem(icon: Icon(Iconsax.wallet_2), label: 'Budget'),
             BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: 'Statistics'),
-            BottomNavigationBarItem(icon: Icon(Iconsax.user), label: 'Profile'),
+            BottomNavigationBarItem(icon: Icon(Iconsax.setting), label: 'Profile'),
           ],
         ),
       ),

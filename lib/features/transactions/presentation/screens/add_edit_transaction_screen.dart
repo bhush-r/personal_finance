@@ -60,6 +60,11 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     _amountCtrl = TextEditingController(text: widget.transaction?.amount.toStringAsFixed(2) ?? '23.00');
     _noteCtrl = TextEditingController(text: widget.transaction?.note ?? '');
     _date = widget.transaction?.date ?? DateTime.now();
+    final initialCategories =
+        _type == TransactionType.expense ? _expenseCategories : _incomeCategories;
+    if (!initialCategories.contains(_category)) {
+      _category = initialCategories.first;
+    }
   }
 
   @override
@@ -106,10 +111,6 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final categories = _type == TransactionType.expense ? _expenseCategories : _incomeCategories;
-
-    if (!categories.contains(_category)) {
-      _category = categories.first;
-    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF090D14),
@@ -304,7 +305,17 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _type = type),
+        onTap: () {
+          setState(() {
+            _type = type;
+            final available = _type == TransactionType.expense
+                ? _expenseCategories
+                : _incomeCategories;
+            if (!available.contains(_category)) {
+              _category = available.first;
+            }
+          });
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -439,19 +450,19 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       case TransactionCategory.food:
         return Iconsax.cup;
       case TransactionCategory.transport:
-        return Iconsax.bus;
+        return Iconsax.car;
       case TransactionCategory.shopping:
         return Iconsax.bag;
       case TransactionCategory.health:
         return Iconsax.heart;
       case TransactionCategory.bills:
-        return Iconsax.receipt_text;
+        return Iconsax.receipt;
       case TransactionCategory.salary:
         return Iconsax.money_recive;
       case TransactionCategory.savings:
         return Iconsax.save_2;
       case TransactionCategory.entertainment:
-        return Iconsax.game;
+        return Iconsax.music;
       case TransactionCategory.other:
         return Iconsax.more;
     }

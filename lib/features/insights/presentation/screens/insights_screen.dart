@@ -214,7 +214,7 @@ class _TrendCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    increased ? Iconsax.arrow_up_3 : Iconsax.arrow_down_1,
+                    increased ? Iconsax.arrow_up_2 : Iconsax.arrow_down_2,
                     color: increased ? const Color(0xFFFB5B63) : const Color(0xFF4D8DFF),
                     size: 14,
                   ),
@@ -464,10 +464,10 @@ class _CategoryBreakdownCard extends StatelessWidget {
   IconData _iconForIndex(int index) {
     const icons = [
       Iconsax.cup,
-      Iconsax.bus,
+      Iconsax.car,
       Iconsax.bag,
       Iconsax.receipt,
-      Iconsax.game,
+      Iconsax.music,
     ];
 
     return icons[index % icons.length];
