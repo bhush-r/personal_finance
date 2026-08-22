@@ -1,18 +1,11 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 
+import '../../../../core/utils/currency_formatter.dart';
 import '../cubit/insights_cubit.dart';
 import '../cubit/insights_state.dart';
-
-import '../widgets/top_category_card.dart';
-import '../widgets/weekly_comparison_card.dart';
-import '../widgets/category_breakdown_chart.dart';
-import '../widgets/monthly_trend_chart.dart';
-import '../widgets/expense_summary_card.dart';
-import '../widgets/insights_header.dart';
-
-import '../../../../shared/widgets/loading_shimmer_skeleton.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -21,235 +14,327 @@ class InsightsScreen extends StatefulWidget {
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _InsightsScreenState extends State<InsightsScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
+class _InsightsScreenState extends State<InsightsScreen> {
+  int _selectedRange = 0;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InsightsCubit>().loadInsights();
-      _animationController.forward();
     });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        title: const Text("Insights"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: BlocBuilder<InsightsCubit, InsightsState>(
-              builder: (context, state) {
-                return IconButton(
-                  icon: const Icon(Iconsax.refresh),
-                  onPressed: () {
-                    context.read<InsightsCubit>().refreshInsights();
-                  },
-                  tooltip: "Refresh insights",
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      body: BlocBuilder<InsightsCubit, InsightsState>(
-        builder: (context, state) {
-          if (state is InsightsLoading) {
-            return _buildLoadingState();
-          }
+      backgroundColor: const Color(0xFF090D14),
+      body: SafeArea(
+        child: BlocBuilder<InsightsCubit, InsightsState>(
+          builder: (context, state) {
+            if (state is InsightsLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (state is InsightsError) {
-            return _buildErrorState(context, state.message);
-          }
+            if (state is InsightsError) {
+              return _ErrorState(
+                message: state.message,
+                onRetry: () => context.read<InsightsCubit>().refreshInsights(),
+              );
+            }
 
-          if (state is InsightsLoaded) {
+            if (state is! InsightsLoaded) {
+              return const SizedBox.shrink();
+            }
+
             final insight = state.insight;
+            final chartValues = _buildWeekSeries(insight.thisWeekExpense);
+            final categoryEntries = insight.categoryBreakdown.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            final topCategories = categoryEntries.take(5).toList();
+            final total = topCategories.fold<double>(0, (sum, e) => sum + e.value);
+            final change = insight.getWeeklyChange();
 
-            return FadeTransition(
-              opacity: _animationController,
-              child: RefreshIndicator(
-                onRefresh: () =>
-                    context.read<InsightsCubit>().refreshInsights(),
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    // ✨ INSIGHTS HEADER
-                    InsightsHeader(insight: insight),
-                    const SizedBox(height: 20),
-
-                    // ✨ TOP SPENDING CATEGORY
-                    _buildSectionTitle("Top Spending Category"),
-                    _buildAnimatedCard(
-                      0,
-                      child: TopCategoryCard(
-                        topCategory: insight.topCategory,
-                        amount: insight.topCategoryAmount,
-                      ),
+            return RefreshIndicator(
+              color: const Color(0xFF3B82F6),
+              onRefresh: () => context.read<InsightsCubit>().refreshInsights(),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 16),
+                  _RangeSelector(
+                    selectedIndex: _selectedRange,
+                    onChanged: (value) => setState(() => _selectedRange = value),
+                  ),
+                  const SizedBox(height: 16),
+                  _TrendCard(chartValues: chartValues, weeklyChange: change),
+                  const SizedBox(height: 14),
+                  _SummaryInfoCard(
+                    changePercent: change,
+                    topCategory: insight.topCategory,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Category Breakdown',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 34,
                     ),
-                    const SizedBox(height: 16),
-
-                    // ✨ WEEKLY COMPARISON
-                    _buildSectionTitle("Weekly Comparison"),
-                    _buildAnimatedCard(
-                      1,
-                      child: WeeklyComparisonCard(
-                        thisWeek: insight.thisWeekExpense,
-                        lastWeek: insight.lastWeekExpense,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ✨ DAILY AVERAGE
-                    _buildSectionTitle("Daily Average"),
-                    _buildAnimatedCard(
-                      2,
-                      child: ExpenseSummaryCard(
-                        averageDailySpend: insight.averageDailySpend,
-                        thisWeekExpense: insight.thisWeekExpense,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ✨ CATEGORY BREAKDOWN
-                    _buildSectionTitle("Spending by Category"),
-                    _buildAnimatedCard(
-                      3,
-                      child: CategoryBreakdownChart(
-                        data: insight.categoryBreakdown,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ✨ MONTHLY TREND
-                    _buildSectionTitle("Monthly Trend"),
-                    _buildAnimatedCard(
-                      4,
-                      child: MonthlyTrendChart(
-                        trend: insight.monthlyTrend,
-                      ),
-                    ),
-
-                    const SizedBox(height: 80),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 14),
+                  _CategoryBreakdownCard(
+                    categories: topCategories,
+                    total: total,
+                  ),
+                ],
               ),
             );
-          }
-
-          return const SizedBox();
-        },
+          },
+        ),
       ),
     );
   }
 
-  // ✨ LOADING STATE
-  Widget _buildLoadingState() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildHeader() {
+    return Row(
       children: [
-        // Header skeleton
-        Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Shimmer.fromColors(
-            baseColor: Colors.grey.shade200,
-            highlightColor: Colors.grey.shade100,
-            child: Container(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ...List.generate(
-          4,
-              (index) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Shimmer.fromColors(
-                baseColor: Colors.grey.shade200,
-                highlightColor: Colors.grey.shade100,
-                child: Container(),
-              ),
+        const Expanded(
+          child: Text(
+            'Statistics',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 40,
+              fontWeight: FontWeight.w700,
             ),
           ),
+        ),
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: const Color(0xFF141A24),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(Iconsax.calendar, color: Colors.white70, size: 20),
         ),
       ],
     );
   }
 
-  // ✨ ERROR STATE
-  Widget _buildErrorState(BuildContext context, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.red.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Iconsax.warning_2,
-              size: 50,
-              color: Colors.red.shade600,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "Unable to Load Insights",
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
+  List<double> _buildWeekSeries(double totalAmount) {
+    if (totalAmount <= 0) return [45, 68, 92, 38, 115, 134, 58];
+
+    const ratios = [0.12, 0.14, 0.16, 0.11, 0.17, 0.18, 0.12];
+    return ratios.map((r) => totalAmount * r).toList();
+  }
+}
+
+class _RangeSelector extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  const _RangeSelector({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Week', 'Month', 'Year', 'Custom'];
+
+    return Row(
+      children: List.generate(labels.length, (index) {
+        final selected = index == selectedIndex;
+
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: index == labels.length - 1 ? 0 : 8),
+            child: GestureDetector(
+              onTap: () => onChanged(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: selected ? const Color(0xFF3B82F6) : const Color(0xFF151C27),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  labels[index],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF9DA6B5),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.read<InsightsCubit>().loadInsights();
-            },
-            icon: const Icon(Iconsax.refresh),
-            label: const Text("Try Again"),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 30,
-                vertical: 12,
+        );
+      }),
+    );
+  }
+}
+
+class _TrendCard extends StatelessWidget {
+  final List<double> chartValues;
+  final double weeklyChange;
+
+  const _TrendCard({
+    required this.chartValues,
+    required this.weeklyChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final increased = weeklyChange >= 0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101722),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Spending Trends',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Icon(
+                    increased ? Iconsax.arrow_up_3 : Iconsax.arrow_down_1,
+                    color: increased ? const Color(0xFFFB5B63) : const Color(0xFF4D8DFF),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${weeklyChange.abs().toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      color: increased ? const Color(0xFFFB5B63) : const Color(0xFF4D8DFF),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          AspectRatio(
+            aspectRatio: 1.55,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                borderData: FlBorderData(show: false),
+                gridData: const FlGridData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        final index = value.toInt();
+                        if (index < 0 || index >= days.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            days[index],
+                            style: const TextStyle(color: Color(0xFF8D97A9), fontSize: 12),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: List.generate(chartValues.length, (index) {
+                  final blueShade = index.isEven ? const Color(0xFF6AA8FF) : const Color(0xFF3E82F7);
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: chartValues[index],
+                        width: 18,
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            blueShade,
+                            blueShade.withValues(alpha: 0.7),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: chartValues
+                .map((amount) => Text(
+                      '\$${amount.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Color(0xFF8D97A9), fontSize: 12),
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryInfoCard extends StatelessWidget {
+  final double changePercent;
+  final String topCategory;
+
+  const _SummaryInfoCard({
+    required this.changePercent,
+    required this.topCategory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final increased = changePercent >= 0;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101722),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Iconsax.info_circle, color: Color(0xFF4D8DFF), size: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'You spent ${changePercent.abs().toStringAsFixed(0)}% '
+              '${increased ? 'more' : 'less'} this week compared to last week. '
+              'Your top spending category is ${_formatLabel(topCategory)}.',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                height: 1.4,
               ),
             ),
           ),
@@ -258,110 +343,173 @@ class _InsightsScreenState extends State<InsightsScreen>
     );
   }
 
-  // ✨ SECTION TITLE
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  // ✨ ANIMATED CARD WITH STAGGER
-  Widget _buildAnimatedCard(int index, {required Widget child}) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 400 + (index * 100)),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, childWidget) {
-        return Transform.translate(
-          offset: Offset(0, 30 * (1 - value)),
-          child: Opacity(
-            opacity: value,
-            child: childWidget,
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: child,
-      ),
-    );
+  String _formatLabel(String key) {
+    final spaced = key.replaceAll('_', ' ');
+    return spaced
+        .split(' ')
+        .map((word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 }
 
-// ✨ SHIMMER EFFECT
-class Shimmer extends StatefulWidget {
-  final Color baseColor;
-  final Color highlightColor;
-  final Widget child;
+class _CategoryBreakdownCard extends StatelessWidget {
+  final List<MapEntry<String, double>> categories;
+  final double total;
 
-  const Shimmer.fromColors({
-    required this.baseColor,
-    required this.highlightColor,
-    required this.child,
+  const _CategoryBreakdownCard({
+    required this.categories,
+    required this.total,
   });
 
   @override
-  State<Shimmer> createState() => _ShimmerState();
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101722),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: categories.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'No category data available.',
+                style: TextStyle(color: Color(0xFF8A93A4)),
+              ),
+            )
+          : Column(
+              children: List.generate(categories.length, (index) {
+                final category = categories[index];
+                final amount = category.value;
+                final percent = total > 0 ? (amount / total) : 0;
+                final color = _palette(index);
+
+                return Padding(
+                  padding: EdgeInsets.only(bottom: index == categories.length - 1 ? 0 : 18),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(_iconForIndex(index), color: color, size: 16),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _formatLabel(category.key),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  '${(percent * 100).toStringAsFixed(0)}% of total',
+                                  style: const TextStyle(color: Color(0xFF8F9AAD), fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            CurrencyFormatter.format(amount),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          value: percent,
+                          minHeight: 6,
+                          backgroundColor: const Color(0xFF1B2430),
+                          valueColor: AlwaysStoppedAnimation(color),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+    );
+  }
+
+  Color _palette(int index) {
+    const colors = [
+      Color(0xFFF5B322),
+      Color(0xFFA855F7),
+      Color(0xFFF76CC7),
+      Color(0xFF21C98D),
+      Color(0xFF9DE344),
+    ];
+
+    return colors[index % colors.length];
+  }
+
+  IconData _iconForIndex(int index) {
+    const icons = [
+      Iconsax.cup,
+      Iconsax.bus,
+      Iconsax.bag,
+      Iconsax.receipt,
+      Iconsax.game,
+    ];
+
+    return icons[index % icons.length];
+  }
+
+  String _formatLabel(String key) {
+    final spaced = key.replaceAll('_', ' ');
+    return spaced
+        .split(' ')
+        .map((word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+  }
 }
 
-class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
-  late AnimationController _shimmerController;
+class _ErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
 
-  @override
-  void initState() {
-    super.initState();
-    _shimmerController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _shimmerController.dispose();
-    super.dispose();
-  }
+  const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _shimmerController,
-      builder: (context, child) {
-        return ShaderMask(
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              begin: Alignment(-1.0 - _shimmerController.value * 2, -0.5),
-              end: Alignment(1.0 - _shimmerController.value * 2, 0.5),
-              colors: [
-                widget.baseColor,
-                widget.highlightColor,
-                widget.baseColor,
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ).createShader(bounds);
-          },
-          child: child,
-        );
-      },
-      child: widget.child,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Iconsax.warning_2, color: Colors.redAccent, size: 42),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
     );
   }
 }
